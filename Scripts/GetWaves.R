@@ -20,12 +20,19 @@ res <- griddap(out,
                url = url) # get the gridded data
 
 WaveData<-res$data %>%
-  mutate(time = ymd_hms(time, tz = "UTC"),
-         time = with_tz(time, "Pacific/Tahiti")) # convert time from UTC to tahit 
+  mutate(date = ymd_hms(time, tz = "UTC") - hours(10)) # convert time from UTC to tahit 
 
 
 
 ggplot(WaveData, aes(x = time, y = shgt))+
   geom_line()
 
-write_csv(x = WaveData, here("Data","Waves","Waves.csv"))
+write_csv(x = WaveData, here("Data","IslandData","Waves.csv"))
+
+test<-left_join(WaveData,weather)
+
+
+ggplot(test)+
+  geom_line(aes(x = date, y = shgt), color = "red")+
+  geom_line(aes(x = date, y = waves), color = "blue")
+  
