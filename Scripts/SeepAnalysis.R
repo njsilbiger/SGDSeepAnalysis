@@ -10,7 +10,8 @@ library(forecast)
 
 ## Read in the different datasets
 
-## FIND PRECIPITATION DATASET
+## Weather data (wind, rain, waves from windguru)#####
+weather<-read_csv(here("Data","IslandData","weather.csv"))
 
 # CT----------------------------
 CondPath<-here("Data", "Varari", "CT")
@@ -66,7 +67,6 @@ AllVarari<-data.frame(date = seq(AllVarari$date[1], AllVarari$date[nrow(AllVarar
   full_join(AllVarari, by = "date")
   
 
-
 ## Simple plot
 
 AllVarari %>%
@@ -78,7 +78,21 @@ AllVarari %>%
   labs(title = "Varari Sled")
 ggsave(here('Output',"Varari_timeseries.pdf"), width = 6)
 
-### plot Salinity versus pH
-AllVarari %>%
-  ggplot(aes(x = Salinity_psu, y = pH, color = log(Lux)))+
-  geom_point()
+# take hour averages
+
+AllVarari_onehour<-AllVarari %>%
+  pivot_longer(cols = TempInSitu:Lux, names_to = "Params", values_to = "Values") %>%
+  mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour
+  group_by(Site,Params, date)%>%
+  summarise(Values = mean(Values,na.rm = TRUE))%>% # take the hourly average
+  ungroup() %>%
+  pivot_wider(names_from = Params, values_from = Values) %>%
+  left_join(weather) # join in the weather data
+
+# plot with weather
+AllVarari_onehour %>%
+  pivot_longer(cols = Depth:waves, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  facet_wrap(~Params, scales = "free_y")
+  
