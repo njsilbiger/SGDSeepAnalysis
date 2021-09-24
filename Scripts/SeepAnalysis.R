@@ -53,13 +53,28 @@ LUX_Varari<-files %>%
   select(date,Lux)%>%
   mutate(Site = "Varari")
 
+## PAR -------------------
+PARPath<-here("Data", "Varari", "PAR")
+files <- dir(path = PARPath,pattern = ".csv", full.names = TRUE)
+
+PAR_Varari<-files %>%
+  set_names()%>% # set's the id of each list to the file name
+  map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
+  select(date,PAR)%>%
+  mutate(Site = "Varari")
+
+
 ### Join everything together
 
 AllVarari<-CT_Varari %>%
   left_join(WL_Varari)%>%
   left_join(pH_Varari) %>%
   left_join(LUX_Varari) %>%
-  relocate(Site, .before = date) # move the site column
+  left_join(PAR_Varari)%>%
+  relocate(Site, .before = date) %>% # move the site column
+  mutate(PAR_calc = ifelse(is.na(PAR), # if PAR is missing, calculate it from LuX or else leave it the same
+                           16778.33+(-0.5003277-16778.33)*exp(1)^(-exp( -13.29572)*Lux),PAR)) %>%
+  select(-Lux,-PAR) # remove Lux and original PAR
 
 #### fill in the missing times with NA for easier plotting
 
@@ -70,7 +85,7 @@ AllVarari<-data.frame(date = seq(AllVarari$date[1], AllVarari$date[nrow(AllVarar
 ## Simple plot
 
 AllVarari %>%
-  pivot_longer(cols = TempInSitu:Lux, names_to = "Params", values_to = "Values") %>%
+  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
   facet_wrap(~Params, scales = "free_y")+
@@ -81,7 +96,7 @@ ggsave(here('Output',"Varari_timeseries.pdf"), width = 6)
 # take hour averages
 
 AllVarari_onehour<-AllVarari %>%
-  pivot_longer(cols = TempInSitu:Lux, names_to = "Params", values_to = "Values") %>%
+  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour
   group_by(Site,Params, date)%>%
   summarise(Values = mean(Values,na.rm = TRUE))%>% # take the hourly average
@@ -97,4 +112,4 @@ AllVarari_onehour %>%
   facet_wrap(~Params, scales = "free_y")+
   theme_bw()
 ggsave(here("Output","Varari_ts_hourly.pdf"), width = 6)
-  
+
