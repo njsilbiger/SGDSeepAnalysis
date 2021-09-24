@@ -94,5 +94,7 @@ AllVarari_onehour %>%
   pivot_longer(cols = Depth:waves, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
-  facet_wrap(~Params, scales = "free_y")
+  facet_wrap(~Params, scales = "free_y")+
+  theme_bw()
+ggsave(here("Output","Varari_ts_hourly.pdf"), width = 6)
   
