@@ -7,11 +7,18 @@ library(here)
 library(tidyverse)
 library(lubridate)
 library(forecast)
+library(patchwork)
 
 ## Read in the different datasets
 
+## Tide predictions------------
+tides<-read_tsv(here("Data","IslandData","TidePredictions.txt"), skip = 13) %>%
+  mutate(date = ymd_hms(paste(Date,Time))) %>%
+  select(date,tideheight = Pred)
+
 ## Weather data (wind, rain, waves from windguru)#####
-weather<-read_csv(here("Data","IslandData","weather.csv"))
+weather<-read_csv(here("Data","IslandData","weather.csv")) %>%
+  left_join(tides)
 
 # CT----------------------------
 CondPath<-here("Data", "Varari", "CT")
@@ -106,10 +113,54 @@ AllVarari_onehour<-AllVarari %>%
 
 # plot with weather
 AllVarari_onehour %>%
-  pivot_longer(cols = Depth:waves, names_to = "Params", values_to = "Values") %>%
+  pivot_longer(cols = Depth:tideheight, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
   facet_wrap(~Params, scales = "free_y")+
   theme_bw()
 ggsave(here("Output","Varari_ts_hourly.pdf"), width = 6)
 
+
+## plot waves vs depth and tide vs depth
+WD_TP<-AllVarari_onehour %>%
+  ggplot(aes(x = tideheight, y = Depth, color = waves))+
+  geom_point()+
+  geom_smooth()+
+  scale_y_continuous(breaks = c(0, 0.25,0.5,0.75,1,1.25))+
+  labs(x = 'Tide Predictions (m)',
+       y = 'Water Depth (m)')+
+  theme_bw()+ 
+  guides(colour=guide_colourbar(barwidth=15,label.position = "top", 
+                                            title.position = "top",
+                                            direction = "horizontal"))+
+  scale_color_viridis_c("Wave Height (m)")+
+  theme(legend.position="top")
+
+WD_Wave<-AllVarari_onehour %>%
+  ggplot(aes(x = waves, y = Depth, color = tideheight))+
+  geom_point()+
+  geom_smooth()+
+  scale_y_continuous(breaks = c(0, 0.25,0.5,0.75,1,1.25))+
+  labs(x = 'Sig Wave height (m)',
+       y = "")+
+       #y = 'Water Depth (m)')+
+  guides(colour=guide_colourbar(barwidth=15,label.position = "top", 
+                                title.position = "top",
+                                direction = "horizontal"))+
+  theme_bw()+
+  theme( axis.text.y = element_blank(),
+         legend.position = 'top')+
+  scale_color_viridis("Tide Predictions (m)",option = "plasma")
+  
+
+WD_TP + WD_Wave
+ggsave(filename = here("Output","WaterDepth_tide_wave.pdf"), width = 10)
+
+### Depth versus different parameters
+AllVarari_onehour %>%
+  pivot_longer(cols = c("pH","Salinity_psu","TempInSitu"), names_to = "Params", values_to = "Values")%>%
+  ggplot(aes(x = Depth, y  = Values, color = waves))+
+  geom_point()+
+  facet_wrap(~Params, scales="free_y")+
+  theme_bw()+
+  scale_color_viridis_c(option = "plasma")
