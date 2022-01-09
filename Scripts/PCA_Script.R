@@ -1,5 +1,10 @@
+# A script to create PCAs for 24 hour biogeochem data for Cabral and Varari
+# Edited on 1/8/2022
+# Created by Nyssa Silbiger 
 
-# load libraries
+####################################
+
+# load libraries #################
 library(tidyverse)
 library(ggfortify)
 library(lubridate)
@@ -8,7 +13,7 @@ library(viridis)
 library(patchwork)
 library(here)
 
-# load the 24 hour chemistry data
+# load the 24 hour chemistry data #####################
 Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
 
 # Load water level data 
@@ -246,3 +251,14 @@ p2seep<-C_pca_Data_all_Seep %>%
            label = PC_loadings_SeepC$labels)+
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+
+### plots of each parameter versus depth
+Data %>%
+  filter(Plate_Seep=="Seep") %>%
+  pivot_longer(cols = Salinity:Ammonia_umolL) %>% 
+  ggplot(aes(x = Depth, y = value))+
+  geom_point()+
+  facet_wrap(~Location*name, scales = "free")
+
+# there is something wrong with how Depth is joining
