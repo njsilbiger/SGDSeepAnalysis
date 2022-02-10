@@ -174,5 +174,5 @@ Data_predictions %>%
   geom_point()+
   geom_smooth(method = "lm")+
   labs(y = "DIC")
- # facet_wrap(~Location, scales = "free")
+ # facet_wrap(~Location, scales = "free") 
 
