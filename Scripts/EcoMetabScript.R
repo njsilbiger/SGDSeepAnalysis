@@ -150,8 +150,19 @@ Data_predictions %>%
 
 
 Data_predictions %>%
+  filter(Plate_Seep == "Seep") %>%
+  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
+  ggplot(aes(x = log(Silicate_umolL), y = pH, color = Day_Night))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "pH")+
+  facet_wrap(~Location, scales = "free")
+
+Data_predictions %>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = Tide, y = DIC.pred, fill = Day_Night))+
-  geom_violin()+
-  labs(y = "Predicted DIC accounting for mixing with SGD")+
-  facet_wrap(~Location)
+#  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
+  ggplot(aes(x = log(Silicate_umolL), y = DIC, color = Tide))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "DIC")+
+  facet_wrap(~Location*Day_Night, scales = "free_x")
