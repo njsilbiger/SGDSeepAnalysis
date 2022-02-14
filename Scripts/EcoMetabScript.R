@@ -132,7 +132,7 @@ Data_predictions %>%
 
 Data_predictions %>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide_Time, size = log(Silicate_umolL)))+
+  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide_Time))+
   geom_point()+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
