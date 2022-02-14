@@ -176,3 +176,13 @@ Data_predictions %>%
   labs(y = "DIC")
  # facet_wrap(~Location, scales = "free") 
 
+
+Data_predictions %>%
+  filter(Plate_Seep == "Seep") %>%
+  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
+  ggplot(aes(x = log(Silicate_umolL), y = pH, color = Tide, shape = Day_Night))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "pH")+
+  facet_wrap(~Location, scales = "free")
+
