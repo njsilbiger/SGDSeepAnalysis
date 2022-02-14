@@ -37,7 +37,8 @@ WL_Cabral<-files %>%
   select(Date = date, Depth)%>%
   mutate(Location = "Cabral")
 
-WL_all <- bind_rows(WL_Varari, WL_Cabral)
+WL_all <- bind_rows(WL_Varari, WL_Cabral) %>%
+  rename(DateTime = Date)
 
 # Bind with the chem data
 Data<-Data %>%
@@ -72,7 +73,7 @@ V_pca_Data_all<-Data %>%
   anti_join(remove)%>%
   anti_join(remove2)%>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
-  drop_na() %>%
+  drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
   bind_cols(PC_scores)
 
 # scores plot
@@ -142,7 +143,7 @@ PC_loadingsC<-as_tibble(pca_C$rotation) %>%
 C_pca_Data_all<-Data %>%
   select(!Jamie_Plate_ID)%>% # Jamie's plates are all NA here
   filter(Location == "Cabral", Plate_Seep=="Plate") %>%
-  drop_na() %>%
+  drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
   bind_cols(PC_scoresC)  
 
 # scores plot
@@ -203,15 +204,16 @@ V_pca_Data_all_Seep<-Data %>%
 p1seep<-V_pca_Data_all_Seep %>%
   drop_na(Depth)%>%
   ggplot(aes(x = PC1, y = PC2, color = Depth))+
-  geom_point(size = 1.5) +
+   geom_point(aes(size = Depth)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
   scale_shape_manual(values = c(22,16))+
-  scale_colour_viridis()+
-  scale_fill_viridis()+
+  scale_colour_viridis(trans = "reverse")+
+  scale_fill_viridis(trans = "reverse")+
   geom_segment(data = PC_loadings_Seep, aes(x=0,y=0,xend=PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
   annotate("text", x = PC_loadings_Seep$PC1*3+0.1, y = PC_loadings_Seep$PC2*3+.1,
            label = PC_loadings_Seep$labels)+
+  scale_size(trans = "reverse")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
@@ -240,25 +242,28 @@ C_pca_Data_all_Seep<-Data %>%
 p2seep<-C_pca_Data_all_Seep %>%
   drop_na(Depth)%>%
   ggplot(aes(x = PC1, y = PC2, color = Depth))+
-  geom_point(size = 1.5) +
+  geom_point(aes(size = Depth)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
   scale_shape_manual(values = c(22,16))+
-  scale_colour_viridis()+
-  scale_fill_viridis()+
+  scale_colour_viridis(trans = "reverse")+
+  scale_fill_viridis(trans = "reverse")+
   geom_segment(data = PC_loadings_SeepC, aes(x=0,y=0,xend=PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
   annotate("text", x = PC_loadings_SeepC$PC1*3+0.1, y = PC_loadings_SeepC$PC2*3+.1,
            label = PC_loadings_SeepC$labels)+
+  scale_size(trans = "reverse")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 
 ### plots of each parameter versus depth
 Data %>%
-  filter(Plate_Seep=="Seep") %>%
+  filter(Plate_Seep=="Seep", Salinity>10) %>% # I think I need to remove the bottle sample...
   pivot_longer(cols = Salinity:Ammonia_umolL) %>% 
   ggplot(aes(x = Depth, y = value))+
-  geom_point()+
+  geom_point(aes(color = Day_Night))+
+  geom_smooth(method = "lm")+
+  scale_y_continuous(trans = "log10")+
   facet_wrap(~Location*name, scales = "free")
 
 # there is something wrong with how Depth is joining
