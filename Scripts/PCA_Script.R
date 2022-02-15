@@ -272,4 +272,3 @@ Data %>%
   scale_y_continuous(trans = "log10")+
   facet_wrap(~Location*name, scales = "free")
 
-# there is something wrong with how Depth is joining
