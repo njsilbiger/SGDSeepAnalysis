@@ -179,26 +179,58 @@ AllCabral<-data.frame(date = seq(Allcabral$date[1], Allcabral$date[nrow(Allcabra
   full_join(Allcabral, by = "date")
 
 
+## Add in sampling times for Varari and Cabral
+Varari_sample<-tibble(datetime = ymd_hms(c("2021-08-05 11:57:00", "2021-08-05 00:00:00",
+                         "2021-08-08 18:30:00", "2021-08-06 06:40:00",
+                         "2021-08-08 07:30:00" )))
+Cabral_sample<-tibble(datetime =ymd_hms(c("2021-08-09 07:00:00", "2021-08-09 13:00:00",
+                         "2021-08-09 01:10:00","2021-08-09 19:00:00",
+                         "2021-08-10 07:00:00")))
+
 ## Simple plot
 
 AllVarari %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
+#  geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
   facet_wrap(~Params, scales = "free_y")+
   theme_bw() +
   labs(title = "Varari Sled")
 ggsave(here('Output',"Varari_timeseries.pdf"), width = 8, height = 5)
 
+# Just during the sampling times
+AllVarari %>%
+  filter(date >= ymd("2021-08-05"), date <= ymd("2021-08-09"))%>%
+  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
+  facet_wrap(~Params, scales = "free_y")+
+  theme_bw() +
+  labs(title = "Varari Sled")
+
 # Cabral
+AllCabral %>%
+  filter(date >= ymd("2021-08-09"), date <= ymd("2021-08-10"))%>%
+  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  geom_vline(data = Cabral_sample, aes(xintercept = datetime), color = "red")+
+  facet_wrap(~Params, scales = "free_y")+
+  theme_bw() +
+  labs(title = "Cabral Sled")
+
+# Just during sampling times
 AllCabral %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
+  geom_vline(data = Cabral_sample, aes(xintercept = datetime), color = "red")+
   facet_wrap(~Params, scales = "free_y")+
   theme_bw() +
   labs(title = "Cabral Sled")
-ggsave(here('Output',"Cabral_timeseries.pdf"), width = 8, height = 5)
+
 
 # take hour averages
 
