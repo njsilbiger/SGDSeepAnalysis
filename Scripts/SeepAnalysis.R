@@ -70,7 +70,7 @@ files <- dir(path = pHPath,pattern = ".csv", full.names = TRUE)
 pH_Varari<-files %>%
   set_names()%>% # set's the id of each list to the file name
   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  select(date,pH)%>%
+  select(date,pH = pH_total)%>%
   mutate(Site = "Varari")
 
 #Cabral
@@ -80,7 +80,7 @@ files <- dir(path = pHPath,pattern = ".csv", full.names = TRUE)
 pH_Cabral<-files %>%
   set_names()%>% # set's the id of each list to the file name
   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  select(date,pH)%>%
+  select(date,pH = pH_total)%>%
   mutate(Site = "Cabral")
 
 
