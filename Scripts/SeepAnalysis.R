@@ -337,3 +337,25 @@ ggplot(AllVarari, aes(x = pH, y = DO_mg_L, col = TempInSitu))+
   geom_point()+
   theme_bw()+
   scale_color_viridis_c(option = "plasma")
+
+
+### Plot pH data hand collected from seep on pH HOBO data ####
+DiscreteData<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
+
+
+AllVarari %>%
+  filter(date >= ymd("2021-08-05"), date <= ymd("2021-08-09"))%>%
+  ggplot()+
+  geom_line(aes(x = date, y = pH))+
+  geom_point(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Varari"), aes(x = DateTime, y = pH), color = "red", size =2)+
+  theme_bw() +
+  labs(title = "Varari Sled")
+
+
+AllCabral %>%
+  filter(date >= ymd("2021-08-08"), date <= ymd("2021-08-10"))%>%
+   ggplot(aes(x = date, y = pH))+
+  geom_line()+
+  geom_point(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Cabral"), aes(x = DateTime, y = pH), color = "red", size =2)+
+  theme_bw() +
+  labs(title = "Cabral Sled")
