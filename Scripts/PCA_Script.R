@@ -16,33 +16,52 @@ library(here)
 # load the 24 hour chemistry data #####################
 Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
 
-# Load water level data 
-# Bring in the depth data
-WLPath<-here("Data", "Varari", "WL")
-files <- dir(path = WLPath,pattern = ".csv", full.names = TRUE)
+# Load the Seep Data
+VarariSeep<-read_csv(here("Data","Varari","AllVarariSeepData.csv")) %>%
+  rename_with(.cols = TempInSitu:PAR_calc,function(x){paste0(x,"_seep")}) %>% # rename columns to say seep at the end
+  rename(DateTime = date, Location = Site)
 
-WL_Varari<-files %>%
-  set_names()%>% # set's the id of each list to the file name
-  map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  select(Date = date, Depth)%>%
-  mutate(Location = "Varari")
+CabralSeep<-read_csv(here("Data","Cabral","AllCabralSeepData.csv")) %>%
+  rename_with(.cols = TempInSitu:PAR_calc,function(x){paste0(x,"_seep")}) %>% # rename columns to say seep at the end
+  rename(DateTime = date, Location = Site)
 
-WLPath<-here("Data", "Cabral", "WL")
-files <- dir(path = WLPath,pattern = ".csv", full.names = TRUE)
-
-#Cabral
-WL_Cabral<-files %>%
-  set_names()%>% # set's the id of each list to the file name
-  map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  select(Date = date, Depth)%>%
-  mutate(Location = "Cabral")
-
-WL_all <- bind_rows(WL_Varari, WL_Cabral) %>%
-  rename(DateTime = Date)
+# bind them together
+SeepAll<-bind_rows(VarariSeep, CabralSeep)
 
 # Bind with the chem data
 Data<-Data %>%
-  left_join(WL_all) 
+  left_join(SeepAll) 
+
+# # Load water level data 
+# # Bring in the depth data
+# WLPath<-here("Data", "Varari", "WL")
+# files <- dir(path = WLPath,pattern = ".csv", full.names = TRUE)
+# 
+# WL_Varari<-files %>%
+#   set_names()%>% # set's the id of each list to the file name
+#   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
+#   select(Date = date, Depth)%>%
+#   mutate(Location = "Varari")
+# 
+# WLPath<-here("Data", "Cabral", "WL")
+# files <- dir(path = WLPath,pattern = ".csv", full.names = TRUE)
+
+# #Cabral
+# WL_Cabral<-files %>%
+#   set_names()%>% # set's the id of each list to the file name
+#   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
+#   select(Date = date, Depth)%>%
+#   mutate(Location = "Cabral")
+
+# WL_all <- bind_rows(WL_Varari, WL_Cabral) %>%
+#   rename(DateTime = Date)
+
+# # Bind with the chem data
+# Data<-Data %>%
+#   left_join(WL_all) 
+
+# drop dataframes I dont need
+rm(CabralSeep,VarariSeep, SeepAll)
 
 ### Varari #####
 ## There seems to be a contaminated nutrient sample for V2 Low tide on the 8/8/2021.  Remove this point
@@ -93,6 +112,16 @@ p1<-V_pca_Data_all %>%
     alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
   theme_bw()+
   theme(legend.position = "none",
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+# scores plot with depth and light as continuous instead of discrete... missing depth data from lowtide at night :(
+p1_DL<-V_pca_Data_all %>%
+  ggplot(aes(x = PC1, y = PC2, color = PAR_calc_seep+1, size = -Depth_seep))+
+  geom_point() +
+  coord_cartesian(xlim = c(-4, 7), ylim = c(-6, 4)) +
+  scale_color_gradient(low = "black", high = "yellow", trans = "log")+
+  theme_bw()+
+  theme(#legend.position = "none",
         panel.grid.major = element_blank(), panel.grid.minor = element_blank())
         
 # loadings plot 
@@ -153,6 +182,16 @@ p1c<-C_pca_Data_all %>%
   theme(legend.position = "none",
         panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
+# scores plot with depth and light as continuous instead of discrete... missing depth data from lowtide at night :(
+p1c_DL<-C_pca_Data_all %>%
+  ggplot(aes(x = PC1, y = PC2, color = PAR_calc_seep+1, size = -Depth_seep))+
+  geom_point() +
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  scale_color_gradient(low = "black", high = "yellow", trans = "log")+
+  theme_bw()+
+  theme(#legend.position = "none",
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
 # loadings plot 
 p2c<-PC_loadingsC %>%
   ggplot(aes(x=PC1, y=PC1, label=labels))+
@@ -194,9 +233,9 @@ V_pca_Data_all_Seep<-Data %>%
 
 # scores plot
 p1seep<-V_pca_Data_all_Seep %>%
-  drop_na(Depth)%>%
-  ggplot(aes(x = PC1, y = PC2, color = -Depth))+
-   geom_point(aes(size = -Depth, shape = Day_Night)) +
+  drop_na(Depth_seep)%>%
+  ggplot(aes(x = PC1, y = PC2, color = -Depth_seep))+
+   geom_point(aes(size = -Depth_seep, shape = Day_Night)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
   #scale_shape_manual(values = c(22,16))+
   scale_colour_viridis(limits = c(-1.1,-0.4))+
@@ -234,9 +273,9 @@ C_pca_Data_all_Seep<-Data %>%
 
 # scores plot
 p2seep<-C_pca_Data_all_Seep %>%
-  drop_na(Depth)%>%
-  ggplot(aes(x = PC1, y = PC2, color = -Depth))+
-  geom_point(aes(size = -Depth, shape = Day_Night)) +
+  drop_na(Depth_seep)%>%
+  ggplot(aes(x = PC1, y = PC2, color = -Depth_seep))+
+  geom_point(aes(size = -Depth_seep, shape = Day_Night)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
   #scale_shape_manual(values = c(22,16))+
   scale_colour_viridis(limits = c(-.55,-.05))+
@@ -266,7 +305,7 @@ ggsave(plot = SeepPCA, filename = here("Output","SeepPCA.pdf"), width = 12, heig
 Data %>%
   filter(Plate_Seep=="Seep", Salinity>10) %>% # I think I need to remove the bottle sample...
   pivot_longer(cols = Salinity:Ammonia_umolL) %>% 
-  ggplot(aes(x = Depth, y = value))+
+  ggplot(aes(x = Depth_seep, y = value))+
   geom_point(aes(color = Day_Night))+
   geom_smooth(method = "lm")+
   scale_y_continuous(trans = "log10")+
