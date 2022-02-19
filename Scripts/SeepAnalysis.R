@@ -156,7 +156,8 @@ AllVarari<-CT_Varari %>%
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = ifelse(is.na(PAR), # if PAR is missing, calculate it from LuX or else leave it the same
                            16778.33+(-0.5003277-16778.33)*exp(1)^(-exp( -13.29572)*Lux),PAR)) %>%
-  select(-Lux,-PAR) # remove Lux and original PAR
+  select(-Lux,-PAR) %>% # remove Lux and original PAR
+  write_csv(here("Data","Varari","AllVarariSeepData.csv"))
 
 Allcabral<-CT_Cabral %>%
   left_join(WL_Cabral)%>%
@@ -167,7 +168,8 @@ Allcabral<-CT_Cabral %>%
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = ifelse(is.na(PAR), # if PAR is missing, calculate it from LuX or else leave it the same
                            16778.33+(-0.5003277-16778.33)*exp(1)^(-exp( -13.29572)*Lux),PAR)) %>%
-  select(-Lux,-PAR) # remove Lux and original PAR
+  select(-Lux,-PAR) %>% # remove Lux and original PAR
+  write_csv(here("Data","Cabral","AllCabralSeepData.csv"))
 
 
 #### fill in the missing times with NA for easier plotting
