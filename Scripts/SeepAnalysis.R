@@ -1,6 +1,6 @@
 ### Look for patterns among data collected at the seep versus WW3 data
 ## Created by Nyssa Silbiger
-## Edited on 10/4/2021
+## Edited on 2/28/2022
 
 ## load libraries ####-----------
 library(here)
@@ -9,6 +9,7 @@ library(lubridate)
 library(forecast)
 library(patchwork)
 library(viridis)
+library(janitor)
 
 ## Read in the different datasets
 
@@ -145,6 +146,31 @@ DO_Cabral<-files %>%
   select(date,DO_mg_L)%>%
   mutate(Site = "Cabral")
 
+# Radon ---------------------
+RnPath<-here("Data", "Varari", "Radon")
+files <- dir(path = RnPath,pattern = ".csv", full.names = TRUE)
+
+Rn_Varari<-files %>%
+  set_names()%>% # set's the id of each list to the file name
+  map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
+  clean_names()%>% # the columns names are messy
+  select(date = full_date,Rn_dpm_L = radon_in_water_dpm_l)%>%
+  mutate(Site = "Varari",
+         date = mdy_hm(date))
+
+# Cabral
+RnPath<-here("Data", "Cabral", "Radon")
+files <- dir(path = RnPath,pattern = ".csv", full.names = TRUE)
+
+Rn_Cabral<-files %>%
+  set_names()%>% # set's the id of each list to the file name
+  map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
+  clean_names()%>% # the columns names are messy
+  select(date = full_date,Rn_dpm_L = radon_in_water_dpm_l)%>%
+  mutate(Site = "Cabral",
+         date = mdy_hm(date))
+
+
 ### Join everything together
 
 AllVarari<-CT_Varari %>%
@@ -153,6 +179,7 @@ AllVarari<-CT_Varari %>%
   left_join(LUX_Varari) %>%
   left_join(PAR_Varari)%>%
   left_join(DO_Varari)%>%
+  left_join(Rn_Varari)%>%
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = ifelse(is.na(PAR), # if PAR is missing, calculate it from LuX or else leave it the same
                            16778.33+(-0.5003277-16778.33)*exp(1)^(-exp( -13.29572)*Lux),PAR)) %>%
@@ -165,6 +192,7 @@ Allcabral<-CT_Cabral %>%
   left_join(LUX_Cabral) %>%
   left_join(PAR_Cabral)%>%
   left_join(DO_Cabral)%>%
+  left_join(Rn_Cabral)%>%
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = ifelse(is.na(PAR), # if PAR is missing, calculate it from LuX or else leave it the same
                            16778.33+(-0.5003277-16778.33)*exp(1)^(-exp( -13.29572)*Lux),PAR)) %>%
@@ -203,27 +231,29 @@ ggsave(here('Output',"Varari_timeseries.pdf"), width = 8, height = 5)
 
 # Just during the sampling times
 AllVarari %>%
-  filter(date >= ymd("2021-08-05"), date <= ymd("2021-08-09"))%>%
+  filter(date >= ymd("2021-08-04"), date <= ymd("2021-08-09"))%>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
+ # geom_point()+ # since radon is only every 6 mins the line doesnt work... need to average out above
   geom_line()+
   geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
   facet_wrap(~Params, scales = "free_y")+
   theme_bw() +
   labs(title = "Varari Sled")
 
-# Cabral
+# Just during sampling times
 AllCabral %>%
   filter(date >= ymd("2021-08-09"), date <= ymd("2021-08-10"))%>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
   geom_line()+
+#  geom_point()+
   geom_vline(data = Cabral_sample, aes(xintercept = datetime), color = "red")+
   facet_wrap(~Params, scales = "free_y")+
   theme_bw() +
   labs(title = "Cabral Sled")
 
-# Just during sampling times
+#Cabral all
 AllCabral %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   ggplot(aes(x = date, y = Values))+
@@ -254,15 +284,18 @@ AllVarari_onehour %>%
   theme_bw()
 ggsave(here("Output","Varari_ts_hourly.pdf"), width = 8)
 
-AllVarari_onehour<-AllVarari %>%
-  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
-  mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour
-  group_by(Site,Params, date)%>%
-  summarise(Values = mean(Values,na.rm = TRUE))%>% # take the hourly average
-  ungroup() %>%
-  pivot_wider(names_from = Params, values_from = Values) %>%
-  left_join(weather) # join in the weather data
+# Sampling times
+AllVarari_onehour %>%
+  filter(date >= ymd("2021-08-04"), date <= ymd("2021-08-09"))%>%
+  pivot_longer(cols = Depth:tideheight, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  #geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
+  facet_wrap(~Params, scales = "free_y")+
+  theme_bw()
 
+
+# Cabral
 AllCabral_onehour<-AllCabral %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
   mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour
@@ -281,6 +314,14 @@ AllCabral_onehour %>%
   theme_bw()
 ggsave(here("Output","Cabral_ts_hourly.pdf"), width = 8)
 
+# Sampling times
+AllCabral_onehour %>%
+  filter(date >= ymd("2021-08-09"), date <= ymd("2021-08-10"))%>%
+  pivot_longer(cols = Depth:tideheight, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  facet_wrap(~Params, scales = "free_y")+
+  theme_bw()
 
 ## plot waves vs depth and tide vs depth
 WD_TP<-AllVarari_onehour %>%
@@ -327,10 +368,11 @@ ggsave(filename = here("Output","WaterDepth_tide_wave.pdf"), width = 8)
 
 ### Depth versus different parameters
 AllVarari_onehour %>%
-  pivot_longer(cols = c("pH","Salinity_psu","TempInSitu", "DO_mg_L"), names_to = "Params", values_to = "Values")%>%
+  pivot_longer(cols = c("pH","Salinity_psu","TempInSitu", "DO_mg_L", "Rn_dpm_L"), names_to = "Params", values_to = "Values")%>%
+  drop_na()%>%
   ggplot(aes(x = Depth, y  = Values, color = waves))+
   geom_point()+
-  facet_wrap(~Params, scales="free_y")+
+  facet_wrap(~Params, scales="free")+
   theme_bw()+
   scale_color_viridis_c(option = "plasma")
 
@@ -340,6 +382,22 @@ ggplot(AllVarari, aes(x = pH, y = DO_mg_L, col = TempInSitu))+
   theme_bw()+
   scale_color_viridis_c(option = "plasma")
 
+
+AllCabral_onehour %>%
+  pivot_longer(cols = c("pH","Salinity_psu","TempInSitu", "DO_mg_L", "Rn_dpm_L"), names_to = "Params", values_to = "Values")%>%
+  drop_na()%>%
+  ggplot(aes(x = Depth, y  = Values, color = waves))+
+  geom_point()+
+  facet_wrap(~Params, scales="free")+
+  theme_bw()+
+  scale_color_viridis_c(option = "plasma")
+
+# looking at relationships with radon
+AllCabral %>%
+  drop_na()%>%
+  filter(Rn_dpm_L>10)%>% # really low values look like outliers
+ggplot(aes(x = log(Rn_dpm_L), y = log(TempInSitu)))+
+  geom_point()
 
 ### Plot pH data hand collected from seep on pH HOBO data ####
 DiscreteData<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
