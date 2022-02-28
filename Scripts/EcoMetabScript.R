@@ -187,6 +187,98 @@ Data_predictions %>%
   labs(y = "pH")+
   facet_wrap(~Location, scales = "free")
 
+
+#### relationships among parameters
+# Si vs NN
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = log(NN_umolL)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs Salinity
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = log(Salinity)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs Temperature
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = Temperature))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs pH
+Data_predictions %>% ## In Varari you see the effect in the correct direction at low night, everything else is flat
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = pH))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs Ammonium
+Data_predictions %>% ## In Varari you see the effect in the correct direction at low night, everything else is flat
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = log(Ammonia_umolL)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+#  Temperature vs delta DIC
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = Temperature, y = DIC.diff))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  facet_wrap(~Location, scales = "free")
+
+
+# NN vs delta DIC
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(NN_umolL), y = DIC.diff))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  facet_wrap(~Location, scales = "free")
+
+# Nh4 vs delta DIC # Day night might have an interaction
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Ammonia_umolL), y = DIC.diff))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  facet_wrap(~Location, scales = "free")
+
+
+# delta DIC vs pH
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = DIC.diff, y = pH))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  facet_wrap(~Location)
+
+# pH vs delta TA
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = pH, y = TA.diff))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  facet_wrap(~Location, scales = "free")
+
+#  Temperature vs delta TA
+Data_predictions %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = Temperature, y = TA.diff))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
 ## What is the distribution of average silicate at the plates
 
 SIMeans<-Data_predictions %>%
