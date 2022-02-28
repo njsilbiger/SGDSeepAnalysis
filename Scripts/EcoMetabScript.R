@@ -119,7 +119,8 @@ Data_predictions<-Cdata %>%
 # Make some plots
 Data_predictions %>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = Silicate_umolL, y = TA.diff, color = Tide_Time))+
+  ggplot(aes(x = log(Silicate_umolL), y = TA.diff, color = Tide_Time))+
+  geom_smooth(method = "lm")+
   geom_point()+
   facet_wrap(~Location, scales = "free")
 
@@ -132,7 +133,7 @@ Data_predictions %>%
 
 Data_predictions %>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide_Time))+
+  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide))+
   geom_point()+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
@@ -186,3 +187,52 @@ Data_predictions %>%
   labs(y = "pH")+
   facet_wrap(~Location, scales = "free")
 
+## What is the distribution of average silicate at the plates
+
+SIMeans<-Data_predictions %>%
+  filter(Plate_Seep=="Plate")%>%
+  group_by(Location, CowTagID)%>%
+  summarise(meanSI = mean(Silicate_umolL, na.rm=TRUE)) %>% # cakculate means
+  mutate(QRank = factor(ntile(meanSI,2))) %>% # put the plates into 3 groups by quartiles
+  right_join(Data_predictions) # join in back with the datapredictions
+
+SIMeans%>%
+  ggplot(aes(x = meanSI, y = Location))+
+  ggridges::geom_density_ridges()
+
+SIMeans %>%
+  filter(Plate_Seep=="Plate")%>%
+ggplot(aes(x = DIC, y = TA, color = QRank, group = QRank))+
+  geom_point()+
+  geom_smooth(method= "lm")+
+  facet_wrap(~Location)
+
+mod1<-lm(TA.pred~DIC.pred*QRank, SIMeans[SIMeans$Location=="Varari" & SIMeans$Plate_Seep=="Plate",])
+anova(mod1)
+
+mod2<-lm(TA.pred~DIC.pred*QRank, SIMeans[SIMeans$Location=="Cabral" & SIMeans$Plate_Seep=="Plate",])
+anova(mod2)
+
+SIMeans %>%
+  filter(Plate_Seep=="Plate")%>%
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = Tide, group = Tide))+
+  geom_point()+
+  geom_smooth(method= "lm")+
+  facet_wrap(~Location)
+
+mod3<-lm(TA.pred~DIC.pred*Tide, SIMeans[SIMeans$Location=="Varari" & SIMeans$Plate_Seep=="Plate",])
+anova(mod3)
+summary(mod3)
+
+mod4<-lm(TA.pred~DIC.pred*Tide, SIMeans[SIMeans$Location=="Cabral" & SIMeans$Plate_Seep=="Plate",])
+anova(mod4)
+summary(mod4)
+
+
+SIMeans %>%
+  filter(Plate_Seep=="Plate")%>%
+  mutate(QRank_raw = factor(ntile(log(Silicate_umolL),3))) %>% # put the plates into 3 groups by quartiles
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = QRank_raw, group = QRank_raw))+
+  geom_point()+
+  geom_smooth(method= "lm")+
+  facet_wrap(~Location)
