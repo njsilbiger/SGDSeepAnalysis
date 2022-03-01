@@ -150,42 +150,22 @@ Data_predictions %>%
   theme_bw()
 
 
-Data_predictions %>%
-  filter(Plate_Seep == "Seep") %>%
-  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
-  ggplot(aes(x = log(Silicate_umolL), y = pH, color = Day_Night))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  labs(y = "pH")+
-  facet_wrap(~Location, scales = "free")
 
-Data_predictions %>%
-  filter(Plate_Seep == "Plate") %>%
-#  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
-  ggplot(aes(x = log(Silicate_umolL), y = DIC))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  labs(y = "DIC")+
-  facet_wrap(~Location*Day_Night, scales = "free")
+# Silicate versus everything in the seep
 
 Data_predictions %>%
   filter(Plate_Seep == "Seep") %>%
-  #  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
-  ggplot(aes(x = log(Silicate_umolL), y = pH, color = Day_Night))+
-  geom_point()+
+  select(Location, Day_Night, Tide, Tide_Time,Silicate_umolL, pH, Salinity, TA, DIC, NN_umolL, Ammonia_umolL, Phosphate_umolL, pCO2)%>%
+  pivot_longer(cols = pH:pCO2, names_to = "Params", values_to = "Values") %>%
+ # filter(Silicate_umolL<400)%>%
+  drop_na()%>%
+  ggplot(aes(x = Silicate_umolL, y = Values, color = Location))+
   geom_smooth(method = "lm")+
-  labs(y = "DIC")
- # facet_wrap(~Location, scales = "free") 
-
-
-Data_predictions %>%
-  filter(Plate_Seep == "Seep") %>%
-  mutate(Tide = fct_relevel(Tide,c("Low","Mid","High")))%>%
-  ggplot(aes(x = log(Silicate_umolL), y = pH, color = Tide, shape = Day_Night))+
   geom_point()+
-  geom_smooth(method = "lm")+
-  labs(y = "pH")+
-  facet_wrap(~Location, scales = "free")
+  labs(title = "Seep data")+
+ # coord_trans(y = "log",x = "log")+
+  facet_wrap(~Params, scales = "free")
+
 
 
 #### relationships among parameters
@@ -225,6 +205,22 @@ Data_predictions %>% ## In Varari you see the effect in the correct direction at
 Data_predictions %>% ## In Varari you see the effect in the correct direction at low night, everything else is flat
   filter(Plate_Seep == "Plate")%>%
   ggplot(aes(x = log(Silicate_umolL), y = log(Ammonia_umolL)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs DIC
+Data_predictions %>% ## In Varari you see the effect in the correct direction at low night, everything else is flat
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = DIC, color = Tide_Time))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+# Si vs TA
+Data_predictions %>% ## In Varari you see the effect in the correct direction at low night, everything else is flat
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = log(Silicate_umolL), y = TA, color = Tide_Time))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scales = "free")
@@ -278,6 +274,10 @@ Data_predictions %>%
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scales = "free")
+
+
+
+
 
 ## What is the distribution of average silicate at the plates
 
