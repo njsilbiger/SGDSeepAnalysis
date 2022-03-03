@@ -234,18 +234,19 @@ V_pca_Data_all_Seep<-Data %>%
 # scores plot
 p1seep<-V_pca_Data_all_Seep %>%
   drop_na(Depth_seep)%>%
-  ggplot(aes(x = PC1, y = PC2, color = -Depth_seep))+
-   geom_point(aes(size = -Depth_seep, shape = Day_Night)) +
+  ggplot(aes(x = PC1, y = PC2, color = log(PAR_calc_seep+1)))+
+   geom_point(aes(size = -Depth_seep)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
   #scale_shape_manual(values = c(22,16))+
-  scale_colour_viridis(limits = c(-1.1,-0.4))+
+  scale_color_gradient(low = "black", high = "yellow")+
+#  scale_colour_viridis(limits = c(-1.1,-0.4))+
    geom_segment(data = PC_loadings_Seep, aes(x=0,y=0,xend=PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
   annotate("text", x = PC_loadings_Seep$PC1*3+0.1, y = PC_loadings_Seep$PC2*3+.1,
            label = PC_loadings_Seep$labels)+
   scale_size(limits = c(-1.1,-0.4))+
   guides(color=guide_legend(), size = guide_legend())+
-  labs(color = "Water Depth", size = "Water Depth", shape = "Day or Night",
+  labs(color = "PAR", size = "Water Depth", shape = "Day or Night",
        title = "Varari Seep")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
@@ -274,11 +275,12 @@ C_pca_Data_all_Seep<-Data %>%
 # scores plot
 p2seep<-C_pca_Data_all_Seep %>%
   drop_na(Depth_seep)%>%
-  ggplot(aes(x = PC1, y = PC2, color = -Depth_seep))+
-  geom_point(aes(size = -Depth_seep, shape = Day_Night)) +
+  ggplot(aes(x = PC1, y = PC2, color = log(PAR_calc_seep+1)))+
+  geom_point(aes(size = -Depth_seep)) +
   #  coord_cartesian(xlim = c(-4, 7), ylim = c(-4, 4)) +
+  scale_color_gradient(low = "black", high = "yellow")+
   #scale_shape_manual(values = c(22,16))+
-  scale_colour_viridis(limits = c(-.55,-.05))+
+#  scale_colour_viridis(limits = c(-.55,-.05))+
 #  scale_fill_viridis(trans = "reverse")+
   geom_segment(data = PC_loadings_SeepC, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
                arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
@@ -286,7 +288,7 @@ p2seep<-C_pca_Data_all_Seep %>%
            label = PC_loadings_SeepC$labels)+
   scale_size(limits = c(-.55,-0.05)) +
   guides(color=guide_legend(), size = guide_legend())+
-  labs(color = "Water Depth", size = "Water Depth", shape = "Day or Night",
+  labs(color = "PAR", size = "Water Depth", 
        title = "Cabral Seep")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
