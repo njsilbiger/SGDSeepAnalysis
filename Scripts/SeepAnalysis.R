@@ -408,6 +408,7 @@ AllVarari %>%
   ggplot()+
   geom_line(aes(x = date, y = pH))+
   geom_point(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Varari"), aes(x = DateTime, y = pH), color = "red", size =2)+
+  geom_line(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Varari"), aes(x = DateTime, y = pH), color = "red")+
   theme_bw() +
   labs(title = "Varari Sled")
 
@@ -417,5 +418,6 @@ AllCabral %>%
    ggplot(aes(x = date, y = pH))+
   geom_line()+
   geom_point(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Cabral"), aes(x = DateTime, y = pH), color = "red", size =2)+
+  geom_line(data = DiscreteData%>% filter(Plate_Seep =="Seep", Location=="Cabral"), aes(x = DateTime, y = pH), color = "red")+
   theme_bw() +
   labs(title = "Cabral Sled")
