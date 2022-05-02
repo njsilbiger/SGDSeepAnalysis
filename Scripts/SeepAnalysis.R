@@ -14,9 +14,19 @@ library(janitor)
 ## Read in the different datasets
 
 ## Tide predictions------------
-tides<-read_tsv(here("Data","IslandData","TidePredictions.txt"), skip = 13) %>%
-  mutate(date = ymd_hms(paste(Date,Time))) %>%
-  select(date,tideheight = Pred)
+# August
+tideAug<-read_tsv(here("Data","IslandData","TidePredictions.txt"), skip = 13) %>%
+  mutate(date = ymd_hms(paste(Date,Time)),
+         season = "Dry") %>%
+  select(date,tideheight = Pred, season)
+
+# March-April
+tideMarch<-read_tsv(here("Data","IslandData","TidePredictions2022.txt"), skip = 13) %>%
+  mutate(date = ymd_hms(paste(Date,Time)),
+         season = "Wet") %>%
+  select(date,tideheight = Pred, season)
+
+tides<-bind_rows(tideAug,tideMarch)
 
 ## Weather data (wind, rain, waves from windguru)#####
 weather<-read_csv(here("Data","IslandData","weather.csv")) %>%

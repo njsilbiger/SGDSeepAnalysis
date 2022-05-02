@@ -11,7 +11,7 @@ library(lubridate)
 
 #### Read in data ####
 # wind
-wind<-read_csv(here("Data","IslandData","wind.csv")) %>%
+wind<-read_csv(here("Data","IslandData","wind2022.csv")) %>%
   mutate_if(is.numeric, as.character)%>% # for some reason its showing as a character
   pivot_longer(names_to = "time", cols = `00h`:`23h`, values_to = "wind") %>%
   mutate(wind = as.numeric(wind),
@@ -19,7 +19,7 @@ wind<-read_csv(here("Data","IslandData","wind.csv")) %>%
   select(date,wind)
   
 # rain ################3
-rain<-read_csv(here("Data","IslandData","rain.csv")) %>%
+rain<-read_csv(here("Data","IslandData","rain2022.csv")) %>%
   mutate_if(is.numeric, as.character)%>% # for some reason its showing as a character
   pivot_longer(names_to = "time", cols = `00h`:`23h`, values_to = "rain") %>%
   mutate(rain = as.numeric(rain),
@@ -29,7 +29,7 @@ rain<-read_csv(here("Data","IslandData","rain.csv")) %>%
 
 # waves
 
-waves<-read_csv(here("Data","IslandData","waves_windguru.csv")) %>%
+waves<-read_csv(here("Data","IslandData","waves2022.csv")) %>%
   mutate_if(is.numeric, as.character)%>% # for some reason its showing as a character
   pivot_longer(names_to = "time", cols = `00h`:`23h`, values_to = "waves") %>%
   mutate(waves = as.numeric(waves),
@@ -42,7 +42,7 @@ weather<-rain %>%
   left_join(waves)
 
 ## export it
-write_csv(weather, here("Data","IslandData","weather.csv"))
+write_csv(weather, here("Data","IslandData","weather2022.csv"))
 
 
 weather %>%
