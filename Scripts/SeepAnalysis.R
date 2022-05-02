@@ -30,7 +30,9 @@ tides<-bind_rows(tideAug,tideMarch)
 
 ## Weather data (wind, rain, waves from windguru)#####
 weather<-read_csv(here("Data","IslandData","weather.csv")) %>%
-  left_join(tides)
+  bind_rows(read_csv(here("Data","IslandData","weather2022.csv")) )%>%
+  left_join(tides)%>%
+  drop_na(season)
 
 # CT----------------------------
 CondPath<-here("Data", "Varari", "CT")
