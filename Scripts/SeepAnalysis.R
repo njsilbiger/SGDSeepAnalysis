@@ -575,6 +575,7 @@ AllVarari %>%
   geom_line(data = Discrete_wet%>% filter(CowTagID =="VSEEP"), aes(x = datetime, y = pH), color = "red")+
   theme_bw() +
   labs(title = "Varari Sled")
+ggsave(here("Output","VararipH.png"))
 
 AllCabral %>%
   filter(date >= ymd("2021-08-08"), date <= ymd("2021-08-10"))%>%
@@ -593,3 +594,4 @@ AllCabral %>%
   geom_line(data = Discrete_wet%>% filter(CowTagID =="CSEEP"), aes(x = datetime, y = pH), color = "red")+
   theme_bw() +
   labs(title = "Cabral Sled")
+ggsave(here("Output","CabralpH.png"))
