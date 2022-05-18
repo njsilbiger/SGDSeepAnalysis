@@ -68,3 +68,70 @@ ggplot(aes(x = TA, y = DIC))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location*CowTagID, scale = "free")
+
+##### bring in the august and the march data together
+
+AugData<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochem_wCarb.csv") %>%
+  mutate(Season = "Dry") %>%
+  relocate(Season, .after = Location)
+
+MarchData <- totaldata %>%
+  left_join(locations) %>%
+  mutate(Season = "Wet",
+         Date = mdy(Date)) %>%
+  relocate(Season, .after = Location)
+
+AllData<-bind_rows(AugData,MarchData)
+
+AllData %>%
+  ggplot(aes(x = TA*Salinity/36, y = DIC*Salinity/36, color = paste(Day_Night, Tide)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(Location~Plate_Seep, scale = "free")
+
+# Bring in the turb data from August
+turbs<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Nutrients/Turb_NC.csv") %>%
+  mutate(Season = "Dry") %>%
+  select(CowTagID, Season, del15N, N_percent, C_N)
+
+
+models2<-AllData %>%
+  left_join(turbs)%>%
+  filter(Plate_Seep == "Plate") %>%
+  mutate(TA_sal = TA*Salinity/36, # salinity normalize
+         DIC_sal = DIC*Salinity/36) %>%
+  nest(data = -c(Location,CowTagID)) %>%
+  mutate(fit = map(data, ~lm(TA_sal~DIC_sal, data = .)),
+         coefs = map(fit, tidy)) %>%
+  select(!fit)%>%
+  unnest(cols = coefs) %>%
+  filter(term == "DIC_sal") %>%
+  unnest(cols = data) %>%
+  group_by(Location,CowTagID)%>%
+  summarise_at(vars(pH, Salinity, estimate, del15N, N_percent, C_N), .funs = ~min(.x,na.rm=TRUE))
+
+models2 %>%
+  ggplot(aes(x = del15N, y = estimate))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_label(aes(label = CowTagID))+
+  facet_wrap(~Location, scales = "free")
+
+# TA/DIC slope ~ del15N
+mod15N<-lm(estimate~del15N, data = models2 %>%filter(Location =="Varari"))
+anova(mod15N)
+
+mod15N<-lm(estimate~del15N, data = models2 %>%filter(Location =="Cabral"))
+anova(mod15N)
+
+mod15N<-lm(estimate~del15N*Location, data = models2)
+anova(mod15N)
+
+AllData %>%
+  mutate(TA_sal = TA*Salinity/36, # salinity normalize
+         DIC_sal = DIC*Salinity/36) %>%
+  ggplot(aes(x = TA_sal, y = DIC_sal))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*CowTagID, scale = "free")
+
