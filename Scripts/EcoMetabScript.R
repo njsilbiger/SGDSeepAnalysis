@@ -328,3 +328,84 @@ SIMeans %>%
   geom_point()+
   geom_smooth(method= "lm")+
   facet_wrap(~Location)
+
+
+######## plot relationship between the first and second low day ###
+
+lowVarari<-Data_predictions %>%
+  filter(Tide == "Low", 
+         Day_Night =="Day", 
+         Plate_Seep =="Plate",
+         Location == "Varari") %>% 
+  mutate(SGDpres = ifelse(Date == ymd("2021-08-06"), "SGD supressed", "SGD present")) 
+
+
+PTADIC<-lowVarari %>%
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = SGDpres, fill = SGDpres))+
+  geom_point()+
+  geom_smooth(method = "lm") +
+ # scale_size_continuous(trans = "log10")+
+  labs(title = "Daytime low tides at Varari",
+        #title = "Data collected between 6:40 - 7:40am",
+       color = " ",
+       x = "DIC normalized to silicate",
+       y = "TA normalized to silicate") + 
+  geom_curve(
+    aes(x = 2020, y = 2380, xend = 2035, yend = 2360),
+    curvature = -0.5,
+    arrow = arrow(
+        length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "#9CC3D5FF",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+
+  geom_curve(
+    aes(x = 2060, y = 2405, xend = 2075, yend = 2385),
+    curvature = 0.5,
+    arrow = arrow(
+      length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "#0063B2FF",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+
+  annotate("text",x = 2020, y = 2385, label = "SGD present")+
+  annotate("text",x = 2060, y = 2410, label = "SGD suppressed")+
+  scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  theme_bw()+
+  theme(legend.position="none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+# box plot or density plot of the distribution of silicate 
+lowVarari %>%
+  ggplot(aes(x = Silicate_umolL, fill = SGDpres))+
+  geom_density(alpha = 0.5)+
+  scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  theme_bw()
+
+pbox<-lowVarari %>%
+  ggplot(aes(x = SGDpres, y = Silicate_umolL, fill = SGDpres))+
+  geom_boxplot(alpha = 0.5)+
+  geom_jitter(width = 0.1, shape = 21)+
+  theme_bw()+
+  scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  theme(legend.position = "none",
+        axis.text.x = element_blank())+
+  labs(x = "",
+       y = "Silicate (umol L-1)")
+
+## Make a plot with an inset
+PTADIC + annotation_custom(ggplotGrob(pbox), xmin = 2070,
+                           xmax = 2100, ymin = 2300, ymax = 2350)
+ggsave(here("Output","LowTideTADIC.pdf"), width = 8, height = 6)
+
+# run an ANCOVA to see of the slopes are different
+mod.low<-  lm(TA.pred~DIC.pred*SGDpres, data = lowVarari)
+anova(mod.low)
