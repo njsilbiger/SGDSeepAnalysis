@@ -34,32 +34,36 @@ totaldata<-left_join(Cdata_orig, CO2all)
 
 totaldata %>%
   left_join(locations) %>%
-  ggplot(aes(x = TA, y = DIC, color = log(Salinity)))+
+  ggplot(aes(x = TA*Salinity/36, y = DIC*Salinity/36, color = paste(Day_Night, Tide)))+
   geom_point()+
   facet_wrap(Location~Plate_Seep, scale = "free")
 
 models<-totaldata %>%
   left_join(locations) %>%
   filter(Plate_Seep == "Plate") %>%
+  mutate(TA_sal = TA*Salinity/36, # salinity normalize
+         DIC_sal = DIC*Salinity/36) %>%
   nest(data = -c(Location,CowTagID)) %>%
-  mutate(fit = map(data, ~lm(TA~DIC, data = .)),
+  mutate(fit = map(data, ~lm(TA_sal~DIC_sal, data = .)),
          coefs = map(fit, tidy)) %>%
   select(!fit)%>%
   unnest(cols = coefs) %>%
-  filter(term == "DIC") %>%
+  filter(term == "DIC_sal") %>%
   unnest(cols = data) %>%
   group_by(Location,CowTagID)%>%
-  summarise_at(vars(pH, Salinity, estimate), .funs = ~mean(.x,na.rm=TRUE))
+  summarise_at(vars(pH, Salinity, estimate), .funs = ~min(.x,na.rm=TRUE))
 
 
 models %>%
-  ggplot(aes(x = pH, y = estimate))+
+  ggplot(aes(x = Salinity, y = estimate))+
   geom_point()+
+  geom_smooth(method = "lm")+
   geom_label(aes(label = CowTagID))+
   facet_wrap(~Location, scales = "free")
 
   
-
+totaldata %>%
+  left_join(locations) %>%
 ggplot(aes(x = TA, y = DIC))+
   geom_point()+
   geom_smooth(method = "lm")+
