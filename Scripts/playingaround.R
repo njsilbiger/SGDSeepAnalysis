@@ -1,5 +1,7 @@
 # playing around
 
+### The august data here still has the two low day values
+
 library(tidyverse)
 library(seacarb)
 library(broom)
