@@ -390,7 +390,7 @@ lowVarari %>%
   theme_bw()
 
 pbox<-lowVarari %>%
-  ggplot(aes(x = SGDpres, y = Silicate_umolL, fill = SGDpres))+
+  ggplot(aes(x = SGDpres, y = NN_umolL, fill = SGDpres))+
   geom_boxplot(alpha = 0.5)+
   geom_jitter(width = 0.1, shape = 21)+
   theme_bw()+
@@ -399,7 +399,7 @@ pbox<-lowVarari %>%
   theme(legend.position = "none",
         axis.text.x = element_blank())+
   labs(x = "",
-       y = "Silicate (umol L-1)")
+       y = "Nitrate (umol L-1)")
 
 ## Make a plot with an inset
 PTADIC + annotation_custom(ggplotGrob(pbox), xmin = 2070,
@@ -409,3 +409,47 @@ ggsave(here("Output","LowTideTADIC.pdf"), width = 8, height = 6)
 # run an ANCOVA to see of the slopes are different
 mod.low<-  lm(TA.pred~DIC.pred*SGDpres, data = lowVarari)
 anova(mod.low)
+
+# t-test for difference in NN concentration between the two lows
+mod.lowNN<-  lm(NN_umolL~SGDpres, data = lowVarari)
+anova(mod.lowNN)
+
+### same plots with high tide included
+Data_predictions %>%
+  filter(#Tide == "Low", 
+         Day_Night =="Day", 
+         Plate_Seep =="Plate",
+         Location == "Varari") %>%
+  mutate(SGDpres = case_when(Date == ymd("2021-08-06") & Tide == "Low" ~"SGD supressed",
+                             Date == ymd("2021-08-08") & Tide == "Low" ~"SGD present",
+                             Tide == "High" ~"High Tide",
+                             
+    
+  )) %>%
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = SGDpres, fill = SGDpres))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+## boxplot
+Data_predictions %>%
+  filter(#Tide == "Low", 
+    Day_Night =="Day", 
+    Plate_Seep =="Plate",
+    Location == "Varari") %>%
+  mutate(SGDpres = case_when(Date == ymd("2021-08-06") & Tide == "Low" ~"SGD supressed",
+                             Date == ymd("2021-08-08") & Tide == "Low" ~"SGD present",
+                             Tide == "High" ~"High Tide",
+                             
+                             
+  )) %>%
+ggplot(aes(x = SGDpres, y = NN_umolL, fill = SGDpres))+
+  geom_boxplot(alpha = 0.5)+
+  geom_jitter(width = 0.1, shape = 21)+
+  theme_bw()+
+#  scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+#  scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
+  theme(legend.position = "none")+
+       # axis.text.x = element_blank())+
+  labs(x = "",
+       y = "Nitrate (umol L-1)")
