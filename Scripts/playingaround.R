@@ -7,7 +7,7 @@ library(seacarb)
 library(broom)
 library(lubridate)
 
-# This is temporary until we get ther rest of the data
+# This is temporary until we get the rest of the data
 Cdata_orig<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_NOTPOcorrect.csv") %>%
   mutate(datetime = mdy_hms(paste(as.character(Date), as.character(SamplingTime))))
 
@@ -137,3 +137,35 @@ AllData %>%
   geom_smooth(method = "lm")+
   facet_wrap(~Location*CowTagID, scale = "free")
 
+# read in the benthic data and look for patterns between TA/DIC
+
+source(here("Scripts","BenthicData.R"))
+# join the data
+AllData<-AllData %>%
+left_join(Benthic.Cover_Categories)
+
+models2 <-models2 %>%
+  left_join(Benthic.Cover_Categories)
+
+models2 %>%
+ggplot(aes(x = log(TotalCalc/TotalAlgae), y = estimate))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+models2 %>%
+  ggplot(aes(y = log((TotalCalc+1)/(TotalAlgae+1)), x = del15N))+
+  geom_point(aes(color = Location))+
+  geom_smooth(method = "lm", color = "black") +
+  geom_hline(yintercept = 0, lty = 2)+
+  labs(y = "log ratio of calcifiers to fleshy algae",
+       color = "")+
+  annotate("text", x = 4.75, y = 0.5, label = "Calcifier-dominated")+
+  annotate("text", x = 4.75, y = -0.5, label = "Fleshy algal-dominated")+
+  theme_bw()+
+  theme(legend.direction = "horizontal",
+        legend.position = c(.18, .1))
+
+ggsave(here("Output","Benthic15N.pdf"), width = 6, height = 6)
+
+modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N*Location, data = models2)
+anova(modBenthic15N)
