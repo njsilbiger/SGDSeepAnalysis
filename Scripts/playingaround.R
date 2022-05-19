@@ -6,6 +6,7 @@ library(tidyverse)
 library(seacarb)
 library(broom)
 library(lubridate)
+library(here)
 
 # This is temporary until we get the rest of the data
 Cdata_orig<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_NOTPOcorrect.csv") %>%
@@ -120,13 +121,7 @@ models2 %>%
   facet_wrap(~Location, scales = "free")
 
 # TA/DIC slope ~ del15N
-mod15N<-lm(estimate~del15N, data = models2 %>%filter(Location =="Varari"))
-anova(mod15N)
-
-mod15N<-lm(estimate~del15N, data = models2 %>%filter(Location =="Cabral"))
-anova(mod15N)
-
-mod15N<-lm(estimate~del15N*Location, data = models2)
+mod15N<-lm(estimate~del15N*Location, data = models2 )
 anova(mod15N)
 
 AllData %>%
@@ -148,24 +143,57 @@ models2 <-models2 %>%
   left_join(Benthic.Cover_Categories)
 
 models2 %>%
-ggplot(aes(x = log(TotalCalc/TotalAlgae), y = estimate))+
+ggplot(aes(x = log((TotalCalc+1)/(TotalAlgae+1)), y = estimate, color = Location))+
   geom_point()+
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location)
 
-models2 %>%
+BenthicTADIC<-lm(estimate ~ log((TotalCalc+1)/(TotalAlgae+1))*Location, data = models2)
+anova(BenthicTADIC)
+
+## Turn the corals and algae to icons
+p1<-models2 %>%
   ggplot(aes(y = log((TotalCalc+1)/(TotalAlgae+1)), x = del15N))+
-  geom_point(aes(color = Location))+
+  geom_point(aes(color = Location, size = N_percent))+
   geom_smooth(method = "lm", color = "black") +
   geom_hline(yintercept = 0, lty = 2)+
+  scale_size_binned("%N (Nutrient Loading)") +
+  scale_color_manual(values = c("#6A3937","#89A5A7"))+
   labs(y = "log ratio of calcifiers to fleshy algae",
-       color = "")+
+       color = "",
+       x = "del15N (Nutrient Source)")+
   annotate("text", x = 4.75, y = 0.5, label = "Calcifier-dominated")+
   annotate("text", x = 4.75, y = -0.5, label = "Fleshy algal-dominated")+
   theme_bw()+
   theme(legend.direction = "horizontal",
         legend.position = c(.18, .1))
 
-ggsave(here("Output","Benthic15N.pdf"), width = 6, height = 6)
+ggsave(here("Output","Benthic15N.pdf"), width = 10, height = 10)
+
+p2<-models2 %>%
+  ggplot(aes(y = log((TotalCalc+1)/(TotalAlgae+1)), x = N_percent, color = Location))+
+  geom_point()+
+  geom_smooth(method = "lm", data = models2%>%filter(Location == "Varari")) +
+  geom_hline(yintercept = 0, lty = 2)+
+  scale_color_manual(values = c("#6A3937","#89A5A7"))+
+  labs(y = "log ratio of calcifiers to fleshy algae",
+       color = "",
+       x = "%N (Nutrient Loading)")+
+ # annotate("text", x = 1.1, y = 0.5, label = "Calcifier-dominated")+
+ # annotate("text", x = 1.1, y = -0.5, label = "Fleshy algal-dominated")+
+  theme_bw()+
+  theme(legend.position = "none")
+
 
 modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N*Location, data = models2)
 anova(modBenthic15N)
+
+modBenthicNpercent<-lm(log((TotalCalc+1)/(TotalAlgae+1))~N_percent*Location, data = models2)
+anova(modBenthicNpercent)
+
+modBenthicNpercent<-lm(log((TotalCalc+1)/(TotalAlgae+1))~N_percent, data = models2 %>% filter(Location == "Varari"))
+anova(modBenthicNpercent)
+
+p1+p2
+
+
