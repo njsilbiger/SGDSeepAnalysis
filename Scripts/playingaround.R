@@ -197,3 +197,38 @@ anova(modBenthicNpercent)
 p1+p2
 
 
+####3 Calculate summaries of all Data 
+AllDataSummary<- AllData %>%
+  group_by(Location, Plate_Seep, CowTagID)%>%
+  summarise_at(vars(Salinity:Ammonia_umolL, pCO2), .funs =  function(x)(max(x, na.rm = TRUE) - min(x,na.rm = TRUE))) %>%
+  left_join(Benthic.Cover_Categories) %>%
+  mutate(logratio = log((TotalCalc +1)/(TotalAlgae+1)))
+  
+
+# Varari only for hendrikje of log community versus pH range
+AllDataSummary %>%
+  filter(Plate_Seep == "Plate", Location == "Varari") %>%
+  ggplot(aes(x=logratio, y = pH ))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "pH Range",
+       x = "log(Calcifiers/Algae) of Benthic Data",
+       title = "Varari")+
+  geom_vline(xintercept = 0, lty = 2)+
+  annotate("text", x = -1.25, y = 0.3, label = "More Algae-Dominated")+
+  annotate("segment", x = -2, xend = -3, y = .3, yend = .3,
+           arrow = arrow( angle = 45, length = unit(.2,"cm")))+
+ # annotate("text", x = 0.3, y = 0.3, label = "Calcifier-Dominated")+
+  theme_bw()
+
+ggsave(here("Output", "CommunityvspH.pdf"), width = 8, height = 8)
+
+#Model of community versus pH range
+modpHlog<-lm(pH ~ logratio, data = AllDataSummary %>% filter(Plate_Seep == "Plate" & Location == "Varari"))
+anova(modpHlog)
+
+
+left_join(models2,AllDataSummary) %>%
+ggplot(aes(x = pH, y = estimate, color = Location))+
+  geom_point()+
+  facet_wrap(~Location)
