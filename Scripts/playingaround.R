@@ -215,8 +215,8 @@ AllDataSummary %>%
        x = "log(Calcifiers/Algae) of Benthic Data",
        title = "Varari")+
   geom_vline(xintercept = 0, lty = 2)+
-  annotate("text", x = -1.25, y = 0.3, label = "More Algae-Dominated")+
-  annotate("segment", x = -2, xend = -3, y = .3, yend = .3,
+  annotate("text", x = -1.25, y = 0.2, label = "More Algae-Dominated")+
+  annotate("segment", x = -2, xend = -3, y = .2, yend = .2,
            arrow = arrow( angle = 45, length = unit(.2,"cm")))+
  # annotate("text", x = 0.3, y = 0.3, label = "Calcifier-Dominated")+
   theme_bw()
@@ -228,7 +228,21 @@ modpHlog<-lm(pH ~ logratio, data = AllDataSummary %>% filter(Plate_Seep == "Plat
 anova(modpHlog)
 
 
-left_join(models2,AllDataSummary) %>%
-ggplot(aes(x = pH, y = estimate, color = Location))+
+AllDataSummary %>%
+  filter(Plate_Seep == "Plate") %>%
+ggplot(aes(x = pH, y = TA, color = Location))+
   geom_point()+
-  facet_wrap(~Location)
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+#Model of TA versus pH range
+modpHTA<-lm(TA ~ pH*Location, data = AllDataSummary)
+anova(modpHTA)
+
+
+AllDataSummary %>%
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = logratio, y = TA, color = Location))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
