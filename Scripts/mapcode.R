@@ -189,4 +189,23 @@ ggplot(data = TurbLong %>% filter(Plate_Seep == "Plate"), aes(x = Location, y = 
   labs(shape = "type")+
   facet_wrap(~Parameters, scales = "free")
 
+
    
+TurbWide<- AllTurb %>%
+  select(Location, CowTagID, Plate_Seep, Season, del15N, N_percent, C_N)%>%
+  pivot_wider(values_from =del15N:C_N, names_from = Season)
+
+
+TurbWide %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = del15N_Dry, y = del15N_Wet, color = Location))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+TurbWide %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = N_percent_Dry, y = N_percent_Wet, color = Location))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+## Maybe looking at the residuals of the lines tells us something about which ones are abnormally high or low in the wet season

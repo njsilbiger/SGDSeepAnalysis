@@ -246,3 +246,16 @@ AllDataSummary %>%
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scales = "free")
+
+#### deal with day night as "cumulative hours of light" where positive values are light and negative are dark
+
+ggplot(AllData %>% filter(Plate_Seep == "Plate"), aes(x = NN_umolL, fill = factor(paste(Day_Night, Tide))))+
+  geom_density(alpha = 0.5)+
+#  geom_vline(data = AllData %>% filter(Plate_Seep == "Seep"), aes(xintercept = NN_umolL))+
+  facet_wrap(~Location)
+  
+
+ggplot(AllData %>% filter(Plate_Seep == "Seep"), aes(x = NN_umolL), fill = "red")+
+  geom_density(alpha = 0.5)+
+  #  geom_vline(data = AllData %>% filter(Plate_Seep == "Seep"), aes(xintercept = NN_umolL))+
+  facet_wrap(~Location)
