@@ -15,6 +15,10 @@ library(here)
 
 # load the 24 hour chemistry data #####################
 Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
+Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv")
+
+## Load the turb nutrient data
+turbdata<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Nutrients/Turb_NC.csv")
 
 # Load the Seep Data
 VarariSeep<-read_csv(here("Data","Varari","AllVarariSeepData.csv")) %>%
@@ -65,13 +69,13 @@ rm(CabralSeep,VarariSeep, SeepAll)
 
 ### Varari #####
 ## There seems to be a contaminated nutrient sample for V2 Low tide on the 8/8/2021.  Remove this point
-remove<-Data %>% filter(CowTagID=="V2", Tide ==" Low",Day_Night=="Day", Date == ymd("2021-08-08"))
+remove<-Data %>% filter(CowTagID=="V2", Tide == "Low",Day_Night=="Day", Date =="8/8/2021")
 
-remove3<-Data %>% filter(CowTagID== "C4", Tide =="Low", Day_Night=="Night", Date == ymd("2021-08-09"))
+remove3<-Data %>% filter(CowTagID== "C4", Tide =="Low", Day_Night=="Night", Date == "8/9/2021")
 
 ## also filter out all the data from the first low tide where the water level was super high
 
-remove2<-Data %>% filter(Tide =="Low", Day_Night=="Day", Date == ymd("2021-08-06"))
+remove2<-Data %>% filter(Tide =="Low", Day_Night=="Day", Date == "8/6/2021")
 
 # extract the params for the PCA
 V_pca_Data<-Data %>%
@@ -141,6 +145,77 @@ VarariPCA<-p1+p2+
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
 ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 12, height = 6)
+
+### Site level pca with variances
+V_pca_Data_site<-Data %>%
+  anti_join(remove)%>%
+  anti_join(remove2)%>%
+  filter(Location == "Varari", Plate_Seep=="Plate") %>%
+  group_by(CowTagID)%>% # calculate the range by cowtag
+  summarise_at(vars(Salinity,pH,Phosphate_umolL:Lignin_Like), .funs = function(x) {max(x, na.rm = TRUE)-min(x, na.rm = TRUE)}) %>%
+  ungroup()%>%
+  left_join(turbdata)%>%
+  select(CowTagID, Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL, del15N, N_percent ) %>%
+ # select(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
+  drop_na()
+
+# Run the PCA
+pca_V_site <- prcomp(V_pca_Data_site[,-1], scale. = TRUE, center = TRUE)
+# Extract the scores and loadings
+PC_scores <-as_tibble(pca_V_site$x[,1:2])
+PC_loadings<-as_tibble(pca_V_site$rotation) %>%
+  bind_cols(labels = rownames(pca_V_site$rotation))
+
+PC_scores %>%
+  bind_cols(V_pca_Data_site)%>%
+  ggplot(aes(x = PC1, y = PC2))+
+ # geom_point(color = "red") +
+  geom_text(aes(x = PC1, y = PC2,label = CowTagID),color = "red")+
+  geom_segment(data = PC_loadings, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
+               arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
+  annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
+           label = PC_loadings$labels)+
+  
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+
+### some plots of the ranges
+ggplot(V_pca_Data_site, aes(x = Silicate_umolL, y = NN_umolL, label = CowTagID, color = del15N))+
+  geom_point()+
+  geom_label()+
+  geom_smooth(method = "lm")+
+  labs(x = "Silicate range",
+       y = "NN range")+
+  theme_bw()
+
+
+ggplot(V_pca_Data_site, aes(y = N_percent, x = NN_umolL))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "%Tissue N from turbinaria",
+       x = "NN diel range")+
+  theme_bw()
+
+
+ggplot(V_pca_Data_site, aes(y = Salinity, x = Silicate_umolL))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "Salinity",
+       x = "Silicate diel range")+
+  theme_bw()
+
+
+ggplot(V_pca_Data_site, aes(x = Ammonia_umolL, y = pH))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(x = "Ammonia diel",
+       y = "pH diel range")+
+  theme_bw()
+
+
+
 #### Cabral #####
 
 #Extract the cabral data
