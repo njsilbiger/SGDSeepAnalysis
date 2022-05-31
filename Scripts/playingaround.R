@@ -7,6 +7,7 @@ library(seacarb)
 library(broom)
 library(lubridate)
 library(here)
+library(easystats)
 
 # This is temporary until we get the rest of the data
 Cdata_orig<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_NOTPOcorrect.csv") %>%
@@ -184,7 +185,6 @@ p2<-models2 %>%
   theme_bw()+
   theme(legend.position = "none")
 
-
 modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N*Location, data = models2)
 anova(modBenthic15N)
 
@@ -195,6 +195,36 @@ modBenthicNpercent<-lm(log((TotalCalc+1)/(TotalAlgae+1))~N_percent, data = model
 anova(modBenthicNpercent)
 
 p1+p2
+
+
+## Just Varari
+models2 %>%
+  filter(Location == "Varari",
+         CowTagID != "V1") %>% # remove the outlier for V1.. this is mostly sand and it is looking coral dominated. not sure how to fix
+  mutate(logratio = log((TotalCalc+1)/(TotalAlgae +1)))%>%
+  ggplot(aes(y = logratio, x = del15N))+
+  geom_point(aes(color = Location, size = N_percent))+
+  geom_text(aes(label = CowTagID))+
+  geom_smooth(method = "lm", color = "black") +
+  geom_hline(yintercept = 0, lty = 2)+
+  scale_size_binned("%N (Nutrient Loading)") +
+  scale_color_manual(values = c("#6A3937","#89A5A7"))+
+  labs(y = "log ratio of calcifiers to fleshy algae",
+       color = "",
+       x = "del15N (Nutrient Source)")+
+  annotate("text", x = 4.75, y = 0.5, label = "Calcifier-dominated")+
+  annotate("text", x = 4.75, y = -0.5, label = "Fleshy algal-dominated")+
+  theme_bw()+
+  theme(legend.direction = "horizontal",
+        legend.position = c(.18, .1))
+
+modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N, data = models2 %>% filter(Location == "Varari",
+                                                                                      CowTagID != "V1"))
+anova(modBenthic15N)
+summary(modBenthic15N)
+check_model(modBenthic15N)
+
+#### Use data from LTER or Burkepile to show "ambient" or "offshore" del15N values versus the seep
 
 
 ####3 Calculate summaries of all Data 
