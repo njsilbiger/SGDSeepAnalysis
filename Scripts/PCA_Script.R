@@ -12,9 +12,11 @@ library(ggforce)
 library(viridis)
 library(patchwork)
 library(here)
+library(wesanderson)
+library(broom)
 
 # load the 24 hour chemistry data #####################
-Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
+#Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
 Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv")
 
 ## Load the turb nutrient data
@@ -81,9 +83,10 @@ remove2<-Data %>% filter(Tide =="Low", Day_Night=="Day", Date == "8/6/2021")
 V_pca_Data<-Data %>%
   anti_join(remove)%>%
   anti_join(remove2)%>%
+ # filter(Location == "Varari", Tide %in% c("High","Low")) %>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
-  select(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
+  select(Salinity,pH,Phosphate_umolL:Lignin_Like)%>%
   drop_na()
 
 # Run the PCA
@@ -92,22 +95,31 @@ pca_V <- prcomp(V_pca_Data, scale. = TRUE, center = TRUE)
 # Extract the scores and loadings
 PC_scores <-as_tibble(pca_V$x[,1:2])
 PC_loadings<-as_tibble(pca_V$rotation) %>%
-  bind_cols(labels = rownames(pca_V$rotation))
+  bind_cols(labels = rownames(pca_V$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels == "pH" ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+  ))
 
 # Put it with all the original data
 V_pca_Data_all<-Data %>%
   anti_join(remove)%>%
   anti_join(remove2)%>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
+#  filter(Location == "Varari", Tide %in% c("High","Low")) %>%
  # drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
   drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
+  #drop_na(Salinity,pH,Phosphate_umolL:Ammonia_umolL)%>%
   bind_cols(PC_scores)
 
 # scores plot
 p1<-V_pca_Data_all %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = Day_Night))+
-  geom_point() +
-  coord_cartesian(xlim = c(-4, 7), ylim = c(-6, 4)) +
+  geom_point(size = 2) +
+ # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
+  coord_cartesian(xlim = c(-6, 4), ylim = c(-6, 4)) +
   scale_shape_manual(values = c(22,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
@@ -128,23 +140,28 @@ p1_DL<-V_pca_Data_all %>%
   theme(#legend.position = "none",
         panel.grid.major = element_blank(), panel.grid.minor = element_blank())
         
+
 # loadings plot 
 p2<-PC_loadings %>%
-  ggplot(aes(x=PC1, y=PC1, label=labels))+
-    geom_segment(aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
-      arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
-  annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
-           label = PC_loadings$labels)+
-  coord_cartesian(xlim = c(-4, 8), ylim = c(-6, 4)) +
+  ggplot(aes(x=PC1, y=PC1, label=labels, color = groupings))+
+    geom_segment(data = PC_loadings, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
+      arrow=arrow(length=unit(0.1,"cm")))+
+  geom_text(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE) +
+  # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
+  #          label = PC_loadings$labels)+
+  coord_cartesian(xlim = c(-6, 4), ylim = c(-6, 4)) +
+  labs(color ="")+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
    theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = c(0.75, 0.85))
 
 VarariPCA<-p1+p2+ 
   patchwork::plot_annotation("Varari Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
-ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 12, height = 6)
+ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 14, height = 8)
 
 ### Site level pca with variances
 V_pca_Data_site<-Data %>%
@@ -232,7 +249,14 @@ pca_C <- prcomp(C_pca_Data, scale. = TRUE, center = TRUE)
 # Extract the scores and loadings
 PC_scoresC <-as_tibble(pca_C$x[,1:2])
 PC_loadingsC<-as_tibble(pca_C$rotation) %>%
-  bind_cols(labels = rownames(pca_C$rotation))
+  bind_cols(labels = rownames(pca_C$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels == "pH" ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+  ))
+
 
 # Put it with all the original data
 C_pca_Data_all<-Data %>%
@@ -269,21 +293,25 @@ p1c_DL<-C_pca_Data_all %>%
 
 # loadings plot 
 p2c<-PC_loadingsC %>%
-  ggplot(aes(x=PC1, y=PC1, label=labels))+
+  ggplot(aes(x=PC1, y=PC1, label=labels, color = groupings))+
   geom_segment(aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
-               arrow=arrow(length=unit(0.1,"cm")), color = "grey")+
-  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
-           label = PC_loadingsC$labels)+
+               arrow=arrow(length=unit(0.1,"cm")))+
+  geom_text(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE) +
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  #  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
+  #        label = PC_loadingsC$labels)+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  labs(color = "")+
   theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = c(0.75, 0.20))
 
 CabralPCA<-p1c+p2c+ 
   patchwork::plot_annotation("Cabral Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
-ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.pdf"), width = 12, height = 6)
+ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.pdf"), width = 14, height = 8)
 
 ### Make a PCA of the seeps colored by water depth ####
 #Varari
@@ -388,3 +416,60 @@ Data %>%
   scale_y_continuous(trans = "log10")+
   facet_wrap(~Location*name, scales = "free")
 
+# Make a correlation plot
+# function for correlation coef
+cor_fun <- function(data) cor.test(data$value, data$Depth_seep, method = "pearson")%>% tidy()
+
+cortest<-Data %>%
+  filter(Plate_Seep=="Seep") %>% # just do the seep data
+  select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep, Depth_seep)%>%
+  pivot_longer(cols = c(Salinity, TA: Lignin_Like, TempInSitu_seep)) %>%
+  drop_na()%>%
+  group_by(Location, name)%>%
+  nest() %>%
+  mutate(model = map(data, cor_fun)) %>%
+  select(Location, name, model) %>%
+  unnest(model)%>% # calculate correlation coefficient
+  mutate(sig = ifelse(p.value<0.1, 1,0 ))# add a 1 if significant correlation (to 0.1 pvalue)
+
+# make a plot of it
+cortest %>%
+  ggplot(aes(x = fct_reorder(name, abs(estimate)), y = Location, color = estimate, size = abs(estimate)))+
+  geom_point()+
+  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
+  scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black" )+
+  scale_size(range = c(0.1,10))+
+  scale_shape_manual(values = c(NA,8))+
+  coord_flip()+
+  theme_bw()+
+  guides(size = "none",
+         shape = "none")+
+  labs(x = "",
+       y = "",
+       color = "Correlation coefficient",
+       title = "Correlation with water depth")
+
+
+ggsave(here("Output","CorrelationPlot_seep.pdf"), height = 8, width = 5)
+
+
+# just Varari
+
+cortest %>%
+  filter(Location == "Varari") %>%
+  ggplot(aes(x = fct_reorder(name, estimate, .desc = TRUE),y = 1, color = estimate, size = abs(estimate)))+
+  geom_point()+
+  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
+  scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black" )+
+  scale_size(range = c(0.1,10))+
+  scale_shape_manual(values = c(NA,8))+
+  coord_flip()+
+  theme_bw()+
+  guides(size = "none",
+         shape = "none")+
+  labs(x = "",
+       y = "",
+       color = "Correlation coefficient",
+       title = "Correlation with water depth")+
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
