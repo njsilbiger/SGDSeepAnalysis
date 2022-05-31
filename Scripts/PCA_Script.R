@@ -416,7 +416,19 @@ Data %>%
   scale_y_continuous(trans = "log10")+
   facet_wrap(~Location*name, scales = "free")
 
-# Make a correlation plot
+## Calculate the ranges for each parameter
+ranges<-Data %>%
+  filter(Plate_Seep=="Seep") %>% # just do the seep data
+  select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
+  pivot_longer(cols = c(Salinity, TA: Lignin_Like, TempInSitu_seep)) %>%
+  drop_na()%>%
+  group_by(Location, name)%>%
+  summarise(min = round(min(value),2),
+            max = round(max(value),2)) %>%
+  mutate(range = paste0("[",min," - ",max,"]"))
+  
+
+# Make a correlation plot of everything versus depth
 # function for correlation coef
 cor_fun <- function(data) cor.test(data$value, data$Depth_seep, method = "pearson")%>% tidy()
 
@@ -473,3 +485,72 @@ cortest %>%
        title = "Correlation with water depth")+
   theme(axis.ticks.x = element_blank(),
         axis.text.x = element_blank())
+
+## same thing but everything versus salinity
+
+cor_fun <- function(data) cor.test(data$value, data$Salinity, method = "pearson")%>% tidy()
+
+cortest<-Data %>%
+  filter(Plate_Seep=="Seep") %>% # just do the seep data
+  select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep)%>%
+  pivot_longer(cols = c(TA: Lignin_Like, TempInSitu_seep)) %>%
+  drop_na()%>%
+  group_by(Location, name)%>%
+  nest() %>%
+  mutate(model = map(data, cor_fun)) %>%
+  select(Location, name, model) %>%
+  unnest(model)%>% # calculate correlation coefficient
+  mutate(sig = ifelse(p.value<0.05, 1,0 ))# add a 1 if significant correlation (to 0.1 pvalue)
+
+cortest %>%
+  ggplot(aes(x = fct_reorder(name, abs(estimate)), y = Location, color = estimate, size = abs(estimate)))+
+  geom_point()+
+  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
+  scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black" )+
+  scale_size(range = c(0.1,10))+
+  scale_shape_manual(values = c(NA,8))+
+  coord_flip()+
+  theme_bw()+
+  guides(size = "none",
+         shape = "none")+
+  labs(x = "",
+       y = "",
+       color = "Correlation coefficient",
+       title = "Correlation with Salinity")
+
+ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 5)
+
+
+# just Varari
+
+cortest %>%
+  left_join(ranges) %>% # join with the ranges
+  filter(Location == "Varari") %>%
+  ggplot(aes(x = fct_reorder(name, estimate),y = 1, color = estimate, size = abs(estimate)))+
+  geom_point()+
+  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
+  geom_text(aes(y = 1.15, label = range), size = 4, color = "black")+
+  ylim (0.8,1.4)+
+  scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0, limits = c(-1,1))+
+  scale_size(range = c(0.1,10))+
+  scale_shape_manual(values = c(NA,8))+
+  coord_flip()+
+  theme_bw()+
+  guides(size = "none",
+         shape = "none",
+         colour = guide_colourbar(title.position="top", title.hjust = 0.5))+
+  labs(x = "",
+       y = "",
+       color = "Correlation coefficient",
+       title = "Correlation with Salinity")+
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        panel.grid = element_blank(),
+      #  panel.grid.major.x = element_blank(),
+      #  panel.grid.minor.x = element_blank(),
+        legend.position = "bottom",
+        legend.key.width = unit(1, "cm")
+        )
+
+ggsave(here("Output","CorrelationPlot_seepSalinityV.pdf"), height = 8, width = 7)
+
