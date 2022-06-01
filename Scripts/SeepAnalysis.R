@@ -35,6 +35,15 @@ weather<-read_csv(here("Data","IslandData","weather.csv")) %>%
   left_join(tides)%>%
   drop_na(Season)
 
+#### Waves from offshore ADCP from LTER
+
+
+waves<-read_csv(here("Data","IslandData","WestSideADCPMCR.csv")) %>%
+  filter(datetime > ymd("2021-08-03") & datetime < ymd("2021-09-06")) %>%
+  mutate(Season = "Dry",
+         date = datetime)%>%
+  select(!datetime)
+
 # CT----------------------------
 CondPath<-here("Data", "Varari", "CT")
 files <- dir(path = CondPath,pattern = ".csv", full.names = TRUE)
@@ -208,6 +217,7 @@ AllVarari<-CT_Varari %>%
   left_join(PAR_Varari)%>%
   left_join(DO_Varari)%>%
   left_join(Rn_Varari)%>%
+  left_join(waves)%>% # add in wave height data from LTER 6 offshore
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = case_when(is.na(PAR) & Season == "Dry" ~ 16778.33+(0-16778.33)*exp(1)^(-exp( -13.29572)*Lux), # calculate PAR when it is missing
                               !is.na(PAR)~PAR,
@@ -309,10 +319,12 @@ AllVarari %>%
     y = rep(list(
       scale_y_continuous(limits = c(0, 2.5)),
       scale_y_continuous(limits = c(0, 18)),
+      scale_y_continuous(limits = c(0, 18)),
       scale_y_continuous(limits = c(0, 2000)),
       scale_y_continuous(limits = c(7.0, 8.2)),
       scale_y_continuous(limits = c(0, 6)),
       scale_y_continuous(limits = c(20, 38)),
+      scale_y_continuous(limits = c(0, 5)),
       scale_y_continuous(limits = c(24, 32))
     ), each = 2)
   )+
@@ -373,7 +385,7 @@ AllCabral %>%
 
 AllVarari_onehour<-AllVarari %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
-  mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour
+  mutate(date = floor_date(date,"hour"))%>% # round to the lowest hour (3 hour because that is the frequency of wave height data)
   group_by(Site,Params, date)%>%
   summarise(Values = mean(Values,na.rm = TRUE))%>% # take the hourly average
   ungroup() %>%
@@ -391,11 +403,13 @@ AllVarari_onehour %>%
     y = rep(list(
       scale_y_continuous(limits = c(0, 1.5)),
       scale_y_continuous(limits = c(0, 16)),
+      scale_y_continuous(limits = c(10, 16)),
       scale_y_continuous(limits = c(0, 1500)),
       scale_y_continuous(limits = c(7.0, 8.2)),
       scale_y_continuous(limits = c(0, 2)),
       scale_y_continuous(limits = c(0, 6)),
       scale_y_continuous(limits = c(20, 38)),
+      scale_y_continuous(limits = c(1, 5)),
       scale_y_continuous(limits = c(24, 32)),
       scale_y_continuous(limits = c(0, 0.3)),
       scale_y_continuous(limits = c(0, 3.0)),
@@ -463,9 +477,9 @@ AllCabral_onehour %>%
 
 ## plot waves vs depth and tide vs depth
 WD_TP<-AllVarari_onehour %>%
-  bind_rows(AllCabral_onehour)%>%
-  drop_na(Site)%>%
-  ggplot(aes(x = tideheight, y = Depth, color = waves))+
+ # bind_rows(AllCabral_onehour)%>%
+  drop_na(Site, Significant_wave_height)%>%
+  ggplot(aes(x = tideheight, y = Depth, color = Significant_wave_height))+
   geom_point()+
   geom_smooth(method = "lm")+
   scale_y_continuous(breaks = c(0, 0.25,0.5,0.75,1,1.25))+
@@ -477,19 +491,20 @@ WD_TP<-AllVarari_onehour %>%
                                             title.position = "top",
                                             direction = "horizontal"))+
   scale_color_viridis_c("Wave Height (m)")+
-  theme(legend.position="top")+
-  facet_wrap(~Site, ncol = 1, scales = "free_y")+
-  facetted_pos_scales( # make y limits the same by panel
-    y = list(
-      scale_y_continuous(limits = c(0, 0.6)),
-      scale_y_continuous(limits = c(0, 1.5))
-    )
-  )
+  theme(legend.position="top",
+        legend.title.align = 0.5)
+ # facet_wrap(~Site, ncol = 1, scales = "free_y")+
+  # facetted_pos_scales( # make y limits the same by panel
+  #   y = list(
+  #     scale_y_continuous(limits = c(0, 0.6)),
+  #     scale_y_continuous(limits = c(0, 1.5))
+  #   )
+  # )
 
 WD_Wave<-AllVarari_onehour %>%
-  bind_rows(AllCabral_onehour)%>%
+#  bind_rows(AllCabral_onehour)%>%
   drop_na(Site)%>%
-  ggplot(aes(x = waves, y = Depth, color = tideheight))+
+  ggplot(aes(x = Significant_wave_height, y = Depth, color = tideheight))+
   geom_point()+
   geom_smooth(method = "lm")+
   scale_y_continuous(breaks = c(0, 0.25,0.5,0.75,1,1.25))+
@@ -502,19 +517,20 @@ WD_Wave<-AllVarari_onehour %>%
                                 direction = "horizontal"))+
   theme_bw()+
   theme( axis.text.y = element_blank(),
-         legend.position = 'top')+
-  scale_color_viridis("Tide Predictions (m)",option = "plasma")+
-  facet_wrap(~Site, ncol = 1, scales = "free_y")+
-  facetted_pos_scales( # make y limits the same by panel
-    y = list(
-      scale_y_continuous(limits = c(0, 0.6)),
-      scale_y_continuous(limits = c(0, 1.5))
-    )
-  )
+         legend.position = 'top',
+         legend.title.align = 0.5)+
+  scale_color_viridis("Tide Predictions (m)",option = "plasma")
+  # facet_wrap(~Site, ncol = 1, scales = "free_y")+
+  # facetted_pos_scales( # make y limits the same by panel
+  #   y = list(
+  #     scale_y_continuous(limits = c(0, 0.6)),
+  #     scale_y_continuous(limits = c(0, 1.5))
+  #   )
+  # )
   
 
 WD_TP + WD_Wave
-ggsave(filename = here("Output","WaterDepth_tide_wave.pdf"), width = 8)
+ggsave(filename = here("Output","WaterDepth_tide_waveV.pdf"), width = 8, height = 4)
 
 ### Depth versus different parameters
 AllVarari_onehour %>%

@@ -224,6 +224,7 @@ anova(modBenthic15N)
 summary(modBenthic15N)
 check_model(modBenthic15N)
 
+
 #### Use data from LTER or Burkepile to show "ambient" or "offshore" del15N values versus the seep
 
 
@@ -237,7 +238,8 @@ AllDataSummary<- AllData %>%
 
 # Varari only for hendrikje of log community versus pH range
 AllDataSummary %>%
-  filter(Plate_Seep == "Plate", Location == "Varari") %>%
+  filter(Plate_Seep == "Plate", Location == "Varari",
+         CowTagID != "V1") %>%
   ggplot(aes(x=logratio, y = pH ))+
   geom_point()+
   geom_smooth(method = "lm")+
@@ -254,7 +256,8 @@ AllDataSummary %>%
 ggsave(here("Output", "CommunityvspH.pdf"), width = 8, height = 8)
 
 #Model of community versus pH range
-modpHlog<-lm(pH ~ logratio, data = AllDataSummary %>% filter(Plate_Seep == "Plate" & Location == "Varari"))
+modpHlog<-lm(pH ~ logratio, data = AllDataSummary %>% filter(Plate_Seep == "Plate" & Location == "Varari",
+                                                             CowTagID != "V1"))
 anova(modpHlog)
 
 
