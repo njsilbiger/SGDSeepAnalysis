@@ -530,7 +530,7 @@ WD_Wave<-AllVarari_onehour %>%
   
 
 WD_TP + WD_Wave
-ggsave(filename = here("Output","WaterDepth_tide_waveV.pdf"), width = 8, height = 4)
+ggsave(filename = here("Output","WaterDepth_tide_waveV.png"), width = 8, height = 4)
 
 ### Depth versus different parameters
 AllVarari_onehour %>%

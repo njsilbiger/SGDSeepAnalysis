@@ -404,7 +404,7 @@ pbox<-lowVarari %>%
 ## Make a plot with an inset
 PTADIC + annotation_custom(ggplotGrob(pbox), xmin = 2070,
                            xmax = 2100, ymin = 2300, ymax = 2350)
-ggsave(here("Output","LowTideTADIC.pdf"), width = 8, height = 6)
+ggsave(here("Output","LowTideTADIC.png"), width = 8, height = 6)
 
 # run an ANCOVA to see of the slopes are different
 mod.low<-  lm(TA.pred~DIC.pred*SGDpres, data = lowVarari)
@@ -413,6 +413,27 @@ anova(mod.low)
 # t-test for difference in NN concentration between the two lows
 mod.lowNN<-  lm(NN_umolL~SGDpres, data = lowVarari)
 anova(mod.lowNN)
+
+
+### All TA vs DIC for Varari
+Data_predictions %>%
+  filter(Plate_Seep =="Plate",
+         Location == "Varari") %>%
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = Tide, fill = Tide, shape = Day_Night))+
+  geom_point()+
+  geom_smooth(method = "lm") +
+  # scale_size_continuous(trans = "log10")+
+  labs(
+       #title = "Data collected between 6:40 - 7:40am",
+       color = "Tide",
+       x = "DIC normalized to silicate",
+       y = "TA normalized to silicate") + 
+  theme_bw()+
+  theme(#legend.position="none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+ggsave(here("Output","TADICallV.png"), width = 5, height = 5)
+
 
 ### same plots with high tide included
 Data_predictions %>%

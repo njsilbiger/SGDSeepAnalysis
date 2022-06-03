@@ -161,7 +161,7 @@ VarariPCA<-p1+p2+
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
-ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 14, height = 8)
+ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.png"), width = 14, height = 8)
 
 ### Site level pca with variances
 V_pca_Data_site<-Data %>%
@@ -552,5 +552,5 @@ cortest %>%
         legend.key.width = unit(1, "cm")
         )
 
-ggsave(here("Output","CorrelationPlot_seepSalinityV.pdf"), height = 8, width = 7)
+ggsave(here("Output","CorrelationPlot_seepSalinityV.png"), height = 8, width = 7)
 

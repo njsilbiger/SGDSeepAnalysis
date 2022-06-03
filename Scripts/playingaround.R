@@ -204,7 +204,7 @@ models2 %>%
   mutate(logratio = log((TotalCalc+1)/(TotalAlgae +1)))%>%
   ggplot(aes(y = logratio, x = del15N))+
   geom_point(aes(color = Location, size = N_percent))+
-  geom_text(aes(label = CowTagID))+
+ # geom_text(aes(label = CowTagID))+
   geom_smooth(method = "lm", color = "black") +
   geom_hline(yintercept = 0, lty = 2)+
   scale_size_binned("%N (Nutrient Loading)") +
@@ -217,6 +217,9 @@ models2 %>%
   theme_bw()+
   theme(legend.direction = "horizontal",
         legend.position = c(.18, .1))
+
+ggsave(here("Output","Benthic15NV.png"), width = 10, height = 10)
+
 
 modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N, data = models2 %>% filter(Location == "Varari",
                                                                                       CowTagID != "V1"))
