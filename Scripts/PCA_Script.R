@@ -109,7 +109,7 @@ V_pca_Data_all<-Data %>%
   anti_join(remove2)%>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
 #  filter(Location == "Varari", Tide %in% c("High","Low")) %>%
- # drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
+# drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
   drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
   #drop_na(Salinity,pH,Phosphate_umolL:Ammonia_umolL)%>%
   bind_cols(PC_scores)

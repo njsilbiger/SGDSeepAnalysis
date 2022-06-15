@@ -8,6 +8,7 @@ library(broom)
 library(lubridate)
 library(here)
 library(easystats)
+library(ggtext)
 
 # This is temporary until we get the rest of the data
 Cdata_orig<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_NOTPOcorrect.csv") %>%
@@ -201,9 +202,9 @@ p1+p2
 models2 %>%
   filter(Location == "Varari",
          CowTagID != "V1") %>% # remove the outlier for V1.. this is mostly sand and it is looking coral dominated. not sure how to fix
-  mutate(logratio = log((TotalCalc+1)/(TotalAlgae +1)))%>%
+  mutate(logratio = log((TotalAlgae+1)/(TotalCalc +1)))%>%
   ggplot(aes(y = logratio, x = del15N))+
-  geom_point(aes(color = Location, size = N_percent))+
+  geom_point(aes( size = N_percent))+
  # geom_text(aes(label = CowTagID))+
   geom_smooth(method = "lm", color = "black") +
   geom_hline(yintercept = 0, lty = 2)+
@@ -211,22 +212,29 @@ models2 %>%
   scale_color_manual(values = c("#6A3937","#89A5A7"))+
   labs(y = "log ratio of calcifiers to fleshy algae",
        color = "",
-       x = "del15N (Nutrient Source)")+
-  annotate("text", x = 4.75, y = 0.5, label = "Calcifier-dominated")+
-  annotate("text", x = 4.75, y = -0.5, label = "Fleshy algal-dominated")+
+       x = "&delta;<sup>15</sup>*N* (Nutrient Source)")+
+  annotate("text", x = 4.75, y = 0.5, label = "Fleshy algal-dominated", size = 10)+
+  annotate("text", x = 4.75, y = -0.5, label = "Calcifier-dominated", size = 10)+
   theme_bw()+
   theme(legend.direction = "horizontal",
-        legend.position = c(.18, .1))
+        legend.position = c(.25, .7),
+        axis.title.x = element_markdown(size = 18),
+        axis.title.y = element_markdown(size = 18),
+        axis.text = element_markdown(size = 16),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size=12))
 
 ggsave(here("Output","Benthic15NV.png"), width = 10, height = 10)
 
 
-modBenthic15N<-lm(log((TotalCalc+1)/(TotalAlgae+1))~del15N, data = models2 %>% filter(Location == "Varari",
+modBenthic15N<-lm(log((TotalAlgae+1)/(TotalCalc+1))~del15N, data = models2 %>% filter(Location == "Varari",
                                                                                       CowTagID != "V1"))
 anova(modBenthic15N)
 summary(modBenthic15N)
 check_model(modBenthic15N)
-
+# p = 0.0419 
+# r2 = 0.22
+# y ~ 1.01x-2.54
 
 #### Use data from LTER or Burkepile to show "ambient" or "offshore" del15N values versus the seep
 

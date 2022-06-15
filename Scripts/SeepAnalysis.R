@@ -501,6 +501,25 @@ WD_TP<-AllVarari_onehour %>%
   #   )
   # )
 
+AllVarari_onehour<-
+AllVarari_onehour %>% # add scaled values for models
+  mutate(Depth_scaled = as.numeric(scale(Depth, center = TRUE, scale = TRUE)),
+         wave_scaled = as.numeric(scale(Significant_wave_height, center = TRUE, scale = TRUE)),
+         tide_scaled = as.numeric(scale(tideheight, center = TRUE, scale = TRUE))) 
+
+# model with depth as a function of waves
+wavemod<-lm(Depth_scaled~wave_scaled, data = AllVarari_onehour)
+anova(wavemod)
+summary(wavemod)
+# y ~ 0.95x+0.04, r2 = 0.57
+
+# model with depth as a function of tide
+tidemod<-lm(Depth_scaled~tide_scaled, data = AllVarari_onehour)
+anova(tidemod)
+summary(tidemod)
+# y ~ 0.43x+0.003, r2 = 0.17
+
+
 WD_Wave<-AllVarari_onehour %>%
 #  bind_rows(AllCabral_onehour)%>%
   drop_na(Site)%>%
@@ -611,3 +630,34 @@ AllCabral %>%
   theme_bw() +
   labs(title = "Cabral Sled")
 ggsave(here("Output","CabralpH.png"))
+
+
+### Making plots with salinity versus depth, but we need to filter it by individual time-series because if the sled was moved at all the depth was different
+## Something weird is happening on the 15th - 17th... is this massive drop real? Is this post the big wave event? Need to figure out how to deal with this
+
+AllVarari_Dry %>%
+ # filter(date > mdy("8/17/21"))%>%
+  mutate(DepthBin = case_when(Depth <= 0.75 ~ "<0.75 m",
+                              Depth >0.75 ~ ">0.75 m"
+                              ),
+         DepthBin = factor(DepthBin, levels =c("<0.75 m",">0.75 m") ))%>% # create depth bins for "shallow" and "deep"
+  drop_na(Depth) %>%
+  ggplot(aes(x = Salinity_psu, y = after_stat(count), fill = DepthBin))+
+  geom_density(position = "fill", alpha = 0.60)+ # change n =  fpr changing the bin size
+  scale_fill_manual(values = c("lightblue","darkblue", "black"))+
+  annotate("text", x = 27, y = .75, label = "Shallower (< 0.75 m)", size = 10)+
+  annotate("text", x = 27, y = .08, label = "Deeper (> 0.75 m)", size = 10, color = "white")+
+  labs(y = "Proportion of values", y = "Salinity")+
+  theme_minimal()+
+  theme(legend.position = "NULL",
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
+
+ggsave(here("Output","SalinityvsDepthBin.png"))
+  
+  
+
+AllVarari_Dry %>%
+   filter(date > mdy("8/17/21"))%>%
+  ggplot(aes(x = Depth, y = Salinity_psu))+
+  geom_point()

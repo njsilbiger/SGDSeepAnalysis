@@ -344,8 +344,9 @@ PTADIC<-lowVarari %>%
   ggplot(aes(x = DIC.pred, y = TA.pred, color = SGDpres, fill = SGDpres))+
   geom_point()+
   geom_smooth(method = "lm") +
+  xlim(2000, 2105)+
  # scale_size_continuous(trans = "log10")+
-  labs(title = "Daytime low tides at Varari",
+  labs(#title = "Daytime low tides at Varari",
         #title = "Data collected between 6:40 - 7:40am",
        color = " ",
        x = "DIC normalized to silicate",
@@ -372,14 +373,16 @@ PTADIC<-lowVarari %>%
     size = 1.2,
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
-  annotate("text",x = 2020, y = 2385, label = "SGD present")+
-  annotate("text",x = 2060, y = 2410, label = "SGD suppressed")+
+  annotate("text",x = 2020, y = 2385, label = "SGD present", size = 8)+
+  annotate("text",x = 2060, y = 2410, label = "SGD suppressed", size = 8)+
   scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
   scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
   theme_bw()+
   theme(legend.position="none",
         panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
 
 # box plot or density plot of the distribution of silicate 
 lowVarari %>%
@@ -397,13 +400,16 @@ pbox<-lowVarari %>%
   scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
   scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
   theme(legend.position = "none",
-        axis.text.x = element_blank())+
+        axis.text.x = element_blank(),
+        axis.title.y = element_markdown(size = 16),
+        axis.text.y = element_text(size = 14))+
   labs(x = "",
-       y = "Nitrate (umol L-1)")
+       y = "Nitrate (&mu;mol L<sup>-1</sup>)")
+
 
 ## Make a plot with an inset
 PTADIC + annotation_custom(ggplotGrob(pbox), xmin = 2070,
-                           xmax = 2100, ymin = 2300, ymax = 2350)
+                           xmax = 2105, ymin = 2300, ymax = 2350)
 ggsave(here("Output","LowTideTADIC.png"), width = 8, height = 6)
 
 # run an ANCOVA to see of the slopes are different
@@ -418,22 +424,103 @@ anova(mod.lowNN)
 ### All TA vs DIC for Varari
 Data_predictions %>%
   filter(Plate_Seep =="Plate",
-         Location == "Varari") %>%
-  ggplot(aes(x = DIC.pred, y = TA.pred, color = Tide, fill = Tide, shape = Day_Night))+
-  geom_point()+
-  geom_smooth(method = "lm") +
+         Location == "Varari",
+         Date != ymd("2021-08-06")) %>%
+  ggplot(aes(x = DIC.pred, y = TA.pred, color = Tide, shape = Day_Night))+
+  geom_point(aes(shape = Day_Night))+
+  geom_smooth(method = "lm", aes(fill = Tide)) +
   # scale_size_continuous(trans = "log10")+
   labs(
        #title = "Data collected between 6:40 - 7:40am",
        color = "Tide",
        x = "DIC normalized to silicate",
        y = "TA normalized to silicate") + 
+  scale_shape_manual(values = c(22,16))+
+  scale_colour_hue(l = 45)+
+  scale_fill_hue(l = 45)+
+  geom_curve(
+    aes(x = 1990, y = 2380, xend = 2000, yend = 2360),
+    curvature = -0.5,
+    arrow = arrow(
+      length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "grey",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+
+  geom_curve(
+    aes(x = 2040, y = 2405, xend = 2055, yend = 2385),
+    curvature = 0.5,
+    arrow = arrow(
+      length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "grey",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+
+  geom_curve(
+    aes(x = 1940, y = 2270, xend = 1925, yend = 2285),
+    curvature = 0.5,
+    arrow = arrow(
+      length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "grey",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+geom_curve(
+    aes(x = 2000, y = 2285, xend = 1985, yend = 2300),
+    curvature = 0.5,
+    arrow = arrow(
+      length = unit(0.03, "npc"), 
+      type="closed" # Describes arrow head (open or closed)
+    ),
+    colour = "grey",
+    size = 1.2,
+    angle = 90 # Anything other than 90 or 0 can look unusual
+  )+
+  annotate("text",x = 1990, y = 2385, label = "High Tide (Noon)", size = 8)+
+  annotate("text",x = 2040, y = 2410, label = "Low Tide (Dawn)", size = 8)+
+  annotate("text",x = 1940, y = 2265, label = "Low Tide (Dusk)", size = 8)+
+  annotate("text",x = 2000, y = 2280, label = "High Tide (Midnight)", size = 8)+
   theme_bw()+
-  theme(#legend.position="none",
+  
+  theme(legend.position="none",
         panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank())
-ggsave(here("Output","TADICallV.png"), width = 5, height = 5)
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
+ggsave(here("Output","TADICallV.png"), width = 10, height = 10)
 
+HLmod<- lm(TA.pred~DIC.pred*Tide*Time,data = Data_predictions %>%
+               filter(Plate_Seep =="Plate",
+                      Location == "Varari",
+                      Date != ymd("2021-08-06")) )
+
+
+anova(HLmod)
+summary(HLmod)
+
+## boxplot with all of them
+Data_predictions %>%
+  filter(Plate_Seep =="Plate",
+         Location == "Varari",
+         Date != ymd("2021-08-06")) %>%
+  ggplot(aes(x = Tide_Time, y = NN_umolL, color = Tide, shape = Day_Night))+
+  geom_boxplot(alpha = 0.5, aes( fill = Tide))+
+  geom_jitter(width = 0.1)+
+  scale_shape_manual(values = c(22,16))+
+  scale_colour_hue(l = 45)+
+  scale_fill_hue(l = 45)+
+  theme_bw()+
+  theme(legend.position = "none",
+   axis.text.x = element_blank(),
+   axis.text.y = element_text(size = 16),
+   axis.title.y = element_markdown(size = 18))+
+  labs(x = "",
+       y = "Nitrate (&mu;mol L<sup>-1</sup>)")
 
 ### same plots with high tide included
 Data_predictions %>%
@@ -474,3 +561,7 @@ ggplot(aes(x = SGDpres, y = NN_umolL, fill = SGDpres))+
        # axis.text.x = element_blank())+
   labs(x = "",
        y = "Nitrate (umol L-1)")
+
+Data_predictions %>%
+  filter(Plate_Seep =="Plate",
+         Location == "Varari")
