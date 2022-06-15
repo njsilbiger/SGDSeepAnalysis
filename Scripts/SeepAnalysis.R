@@ -188,7 +188,7 @@ files <- dir(path = RnPath,pattern = ".csv", full.names = TRUE)
 Rn_Varari<-files %>%
   set_names()%>% # set's the id of each list to the file name
   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  clean_names()%>% # the columns names are messy
+  janitor::clean_names()%>% # the columns names are messy
   select(date = full_date,Rn_dpm_L = radon_in_water_dpm_l)%>%
   mutate(Site = "Varari",
          date = mdy_hm(date),
@@ -201,7 +201,7 @@ files <- dir(path = RnPath,pattern = ".csv", full.names = TRUE)
 Rn_Cabral<-files %>%
   set_names()%>% # set's the id of each list to the file name
   map_df(read_csv,.id = "filename")  %>% # map everything to a dataframe and put the id in a column called filename
-  clean_names()%>% # the columns names are messy
+  janitor::clean_names()%>% # the columns names are messy
   select(date = full_date,Rn_dpm_L = radon_in_water_dpm_l)%>%
   mutate(Site = "Cabral",
          date = mdy_hm(date),
@@ -645,13 +645,13 @@ AllVarari_Dry %>%
   ggplot(aes(x = Salinity_psu, y = after_stat(count), fill = DepthBin))+
   geom_density(position = "fill", alpha = 0.60)+ # change n =  fpr changing the bin size
   scale_fill_manual(values = c("lightblue","darkblue", "black"))+
-  annotate("text", x = 27, y = .75, label = "Shallower (< 0.75 m)", size = 10)+
-  annotate("text", x = 27, y = .08, label = "Deeper (> 0.75 m)", size = 10, color = "white")+
-  labs(y = "Proportion of values", y = "Salinity")+
+  annotate("text", x = 28.5, y = .75, label = "Lower water level (< 0.75 m)", size = 10)+
+  annotate("text", x = 28.5, y = .04, label = "Higher level (> 0.75 m)", size = 10, color = "white")+
+  labs(y = "Proportion of values", x = "Salinity")+
   theme_minimal()+
   theme(legend.position = "NULL",
-        axis.title = element_text(size = 18),
-        axis.text = element_text(size = 16))
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 18))
 
 ggsave(here("Output","SalinityvsDepthBin.png"))
   
