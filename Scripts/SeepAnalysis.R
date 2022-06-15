@@ -661,3 +661,27 @@ AllVarari_Dry %>%
    filter(date > mdy("8/17/21"))%>%
   ggplot(aes(x = Depth, y = Salinity_psu))+
   geom_point()
+
+## Timeseries of just Depth, Salinity, pH, and Salinity
+
+# New facet label names for supp variable
+supp.labs <- c("Water level (m)", "Temperature &deg;C", "Salinity", "pH (total)")
+names(supp.labs) <- c("Depth", "TempInSitu","Salinity_psu", "pH")
+
+# Create the plot
+
+
+AllVarari_Dry %>%
+   filter(date > mdy("8/11/21"))%>% 
+  select(date, Depth, TempInSitu, Salinity_psu, pH,) %>%
+  pivot_longer(cols = c(Depth:pH))%>%
+  ggplot(aes(x = date, y = value))+
+  geom_line()+
+  labs(x = "",
+       y = "")+
+  facet_wrap(~name, scales = "free_y",
+             labeller = labeller(name = supp.labs))+
+  theme_bw()+
+  theme(axis.text = element_text(size = 16),
+        strip.text = element_markdown(size = 16))
+ggsave(here("Output","shorts.png"), width = 14, height = 10)
