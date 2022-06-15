@@ -14,6 +14,8 @@ library(patchwork)
 library(here)
 library(wesanderson)
 library(broom)
+library(ggtext)
+library(glue)
 
 # load the 24 hour chemistry data #####################
 #Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
@@ -101,7 +103,22 @@ PC_loadings<-as_tibble(pca_V$rotation) %>%
     labels == "Salinity" ~ "Salinity",
     labels == "pH" ~ "Carbonate Chemistry",
     labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
-  ))
+  ),
+  nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        labels == "Lignin_Like" ~"Lignin Like",
+                        labels == "M_C" ~ "M:C",
+                        labels == "Tyrosine_Like" ~ "Tyrosine Like",
+                        labels == "Tryptophan_Like" ~ "Tryptophan Like",
+                        labels == "HIX"~"HIX",
+                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humidic Like",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity"))
 
 # Put it with all the original data
 V_pca_Data_all<-Data %>%
@@ -123,12 +140,17 @@ p1<-V_pca_Data_all %>%
   scale_shape_manual(values = c(22,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(Day_Night, Tide), color = Tide), 
     alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
   theme_bw()+
   theme(legend.position = "none",
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
 
 # scores plot with depth and light as continuous instead of discrete... missing depth data from lowtide at night :(
 p1_DL<-V_pca_Data_all %>%
@@ -143,25 +165,30 @@ p1_DL<-V_pca_Data_all %>%
 
 # loadings plot 
 p2<-PC_loadings %>%
-  ggplot(aes(x=PC1, y=PC1, label=labels, color = groupings))+
-    geom_segment(data = PC_loadings, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
+  ggplot(aes(x=PC1, y=PC1, label=nicenames, color = groupings))+
+  geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA) +
+  geom_segment(data = PC_loadings, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),size = 1.2,
       arrow=arrow(length=unit(0.1,"cm")))+
-  geom_text(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE) +
-  # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
+   # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
   #          label = PC_loadings$labels)+
   coord_cartesian(xlim = c(-6, 4), ylim = c(-6, 4)) +
   labs(color ="")+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
    theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        legend.position = c(0.75, 0.85))
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.75, 0.85),
+        legend.text = element_markdown(size = 16),
+        legend.key.size = unit(1, 'cm'),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
 
 VarariPCA<-p1+p2+ 
   patchwork::plot_annotation("Varari Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
-ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.png"), width = 14, height = 8)
+ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.png"), width = 16, height = 8)
 
 ### Site level pca with variances
 V_pca_Data_site<-Data %>%
@@ -425,7 +452,32 @@ ranges<-Data %>%
   group_by(Location, name)%>%
   summarise(min = round(min(value),2),
             max = round(max(value),2)) %>%
-  mutate(range = paste0("[",min," - ",max,"]"))
+    mutate(unit = case_when(name == "TempInSitu_seep" ~ " &deg;C", # add units
+                            name %in% c("Ammonia_umolL","NN_umolL","Silicate_umolL","Phosphate_umolL")~" &mu;mol L<sup>-1</sup>",
+                            name %in% c("M_C","HIX")~ " ratio",
+                            name %in% c("Salinity")~ " psu",
+                            name %in% c("pH")~ " pH total scale",
+                            name == "TA"~ " &mu;mol kg<sup>-1</sup>",
+                            name %in% c("Lignin_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like","VisibleHumidic_Like")~" Raman Units"),
+      range = paste0("[",min," - ",max,unit,"]"),
+      nicenames = case_when(name == "TempInSitu_seep" ~ "Temperature",
+                            name == "pH" ~ "pH<sub>T</sub>",
+                            name == "Lignin_Like" ~"Lignin Like",
+                            name == "M_C" ~ "M:C",
+                            name == "Tyrosine_Like" ~ "Tyrosine Like",
+                            name == "Tryptophan_Like" ~ "Tryptophan Like",
+                            name == "HIX"~"HIX",
+                            name == "MarineHumic_Like" ~ "Marine Humic Like",
+                            name == "VisibleHumidic_Like" ~ "Visible Humidic Like",
+                            name == "Ammonia_umolL" ~ "Ammonium",
+                            name == "TA" ~ "Total Alkalinity",
+                            name == "Phosphate_umolL" ~ "Phosphate",
+                            name == "NN_umolL" ~ "Nitrate+Nitrite",
+                            name == "Silicate_umolL" ~ "Silicate",
+                            name == "Salinity" ~"Salinity"
+                            
+        
+      ))
   
 
 # Make a correlation plot of everything versus depth
@@ -467,8 +519,25 @@ ggsave(here("Output","CorrelationPlot_seep.pdf"), height = 8, width = 5)
 
 # just Varari
 
-cortest %>%
+test<-cortest %>%
   filter(Location == "Varari") %>%
+  mutate(groupings = case_when( # add groupings
+    name %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    name == "TempInSitu_seep" ~ "Temperature",
+    name == "Salinity" ~ "Salinity",
+    name %in% c("pH","TA") ~ "Carbonate Chemistry",
+    name %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+  )) 
+
+labels <- glue_data(test,
+    "<span style='color: {case_when(groupings == 'Nutrient Chemistry' ~'red',
+                                    groupings == 'Temperature' ~'blue',
+                                    groupings == 'Salinity' ~'green',
+                                    groupings == 'Carbonate Chemistry' ~'yellow',
+                                    groupings == 'fDOM' ~'orange')}'>{name}</span>")
+names(labels)<-test$name
+  
+test %>%
   ggplot(aes(x = fct_reorder(name, estimate, .desc = TRUE),y = 1, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
@@ -484,7 +553,9 @@ cortest %>%
        color = "Correlation coefficient",
        title = "Correlation with water depth")+
   theme(axis.ticks.x = element_blank(),
-        axis.text.x = element_blank())
+        axis.text.x = element_blank(),
+        axis.text.y = element_markdown())+
+  scale_y_discrete(labels = labels)
 
 ## same thing but everything versus salinity
 
@@ -526,10 +597,10 @@ ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 5)
 cortest %>%
   left_join(ranges) %>% # join with the ranges
   filter(Location == "Varari") %>%
-  ggplot(aes(x = fct_reorder(name, estimate),y = 1, color = estimate, size = abs(estimate)))+
+  ggplot(aes(x = fct_reorder(nicenames, estimate),y = 1, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
-  geom_text(aes(y = 1.15, label = range), size = 4, color = "black")+
+  geom_richtext(aes(y = 1.2, label = range), size = 5, color = "black", fill = NA, label.colour = NA)+
   ylim (0.8,1.4)+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0, limits = c(-1,1))+
   scale_size(range = c(0.1,10))+
@@ -541,16 +612,20 @@ cortest %>%
          colour = guide_colourbar(title.position="top", title.hjust = 0.5))+
   labs(x = "",
        y = "",
-       color = "Correlation coefficient",
-       title = "Correlation with Salinity")+
+       color = "Correlation with Salinity"
+     #  title = "Correlation with Salinity"
+       )+
   theme(axis.ticks.x = element_blank(),
         axis.text.x = element_blank(),
         panel.grid = element_blank(),
+        axis.text.y = element_markdown(size = 14),
+        legend.title = element_text(size=14),
+        legend.text = element_text(size = 12),
       #  panel.grid.major.x = element_blank(),
       #  panel.grid.minor.x = element_blank(),
         legend.position = "bottom",
         legend.key.width = unit(1, "cm")
         )
 
-ggsave(here("Output","CorrelationPlot_seepSalinityV.png"), height = 8, width = 7)
+ggsave(here("Output","CorrelationPlot_seepSalinityV.png"), height = 8, width = 9)
 

@@ -11,6 +11,7 @@ library(patchwork)
 library(viridis)
 library(janitor)
 library(ggh4x)
+library(ggtext)
 
 ## Read in the different datasets
 
@@ -636,7 +637,7 @@ ggsave(here("Output","CabralpH.png"))
 ## Something weird is happening on the 15th - 17th... is this massive drop real? Is this post the big wave event? Need to figure out how to deal with this
 
 AllVarari_Dry %>%
- # filter(date > mdy("8/17/21"))%>%
+#  filter(date > mdy("8/11/21") & date < mdy("8/14/21"))%>%
   mutate(DepthBin = case_when(Depth <= 0.75 ~ "<0.75 m",
                               Depth >0.75 ~ ">0.75 m"
                               ),
@@ -658,7 +659,7 @@ ggsave(here("Output","SalinityvsDepthBin.png"))
   
 
 AllVarari_Dry %>%
-   filter(date > mdy("8/17/21"))%>%
+   filter(date < mdy("8/14/21") & date > mdy("8/11/21"))%>%
   ggplot(aes(x = Depth, y = Salinity_psu))+
   geom_point()
 
