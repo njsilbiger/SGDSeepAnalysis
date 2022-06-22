@@ -494,7 +494,7 @@ Data_predictions %>%
         axis.text = element_text(size = 16))
 ggsave(here("Output","TADICallV.png"), width = 10, height = 10)
 
-HLmod<- lm(TA.pred~DIC.pred*Tide*Time,data = Data_predictions %>%
+HLmod<- lm(TA.pred~DIC.pred*Tide_Time,data = Data_predictions %>%
                filter(Plate_Seep =="Plate",
                       Location == "Varari",
                       Date != ymd("2021-08-06")) )
@@ -502,6 +502,44 @@ HLmod<- lm(TA.pred~DIC.pred*Tide*Time,data = Data_predictions %>%
 
 anova(HLmod)
 summary(HLmod)
+
+
+Data_predictions %>%
+  filter(Plate_Seep =="Plate",
+         Location == "Varari",
+         Date != ymd("2021-08-06"))  %>%
+  group_by(Tide_Time, ) %>%
+  summarize(TAmin = min(TA),
+            TAmax = max(TA),
+            TApredmin = min(TA.pred, na.rm = TRUE),
+            TApredmax = max(TA.pred, na.rm = TRUE))
+
+# to make a coefficients plots
+HLmodnested<- lm(TA.pred~Tide_Time/DIC.pred-1,data = Data_predictions %>%
+             filter(Plate_Seep =="Plate",
+                    Location == "Varari",
+                    Date != ymd("2021-08-06")) )
+coeffs<-tidy(HLmodnested)[5:8,]  %>% # just take the slopes
+  mutate(Day_Night = c("Day","Night","Dawn","Dusk"),
+         Day_Night2 = c("Day","Night","Day","Night"),
+         Tide = c("High Tide","High Tide","Low Tide","Low Tide"),
+         NiceLabels  = paste(Tide,":",Day_Night))
+
+ggplot(coeffs, aes(x=estimate, y = NiceLabels, color = Tide, shape = Day_Night2))+
+  geom_point(size = 5)+
+  geom_errorbarh(aes(xmin =estimate-std.error, xmax = estimate+std.error ),height = 0.1 )+
+  geom_vline(aes(xintercept = 0), lty = 2)+
+  scale_shape_manual(values = c(22,16))+
+  scale_colour_hue(l = 45)+
+  scale_fill_hue(l = 45)+
+  labs(x = "Coefficient",
+       y = "")+
+  theme_bw()+
+  theme(legend.position="none",
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
+  
+
 
 ## boxplot with all of them
 Data_predictions %>%
