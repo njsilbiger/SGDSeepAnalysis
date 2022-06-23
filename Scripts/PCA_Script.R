@@ -458,7 +458,7 @@ ranges<-Data %>%
             max = round(max(value),2)) %>%
     mutate(unit = case_when(name == "TempInSitu_seep" ~ " &deg;C", # add units
                             name %in% c("Ammonia_umolL","NN_umolL","Silicate_umolL","Phosphate_umolL")~" &mu;mol L<sup>-1</sup>",
-                            name %in% c("M_C","HIX")~ " ratio",
+                            name %in% c("M_C","HIX")~ " Ratio",
                             name %in% c("Salinity")~ " psu",
                             name %in% c("pH")~ " pH total scale",
                             name == "TA"~ " &mu;mol kg<sup>-1</sup>",
