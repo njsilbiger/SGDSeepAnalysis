@@ -89,7 +89,7 @@ V_pca_Data<-Data %>%
   # filter(DateTime %in% c(ymd_hms("2021-08-05 11:57:00"),ymd_hms("2021-08-05 00:00:00"),ymd_hms("2021-08-08 18:30:00"), ymd_hms("2021-08-08 07:30:00"), ymd_hms("2021-08-04 23:51:00"))) %>%
    filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
-  select(Salinity,pH,Phosphate_umolL:Lignin_Like)%>%
+  select(Salinity,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX)%>%
   drop_na()
 
 # Run the PCA
@@ -103,17 +103,17 @@ PC_loadings<-as_tibble(pca_V$rotation) %>%
     labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
     labels == "Salinity" ~ "Salinity",
     labels == "pH" ~ "Carbonate Chemistry",
-    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
   ),
   nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
                         labels == "pH" ~ "pH<sub>T</sub>",
-                        labels == "Lignin_Like" ~"Lignin Like",
-                        labels == "M_C" ~ "M:C",
+                     #   labels == "Lignin_Like" ~"Lignin Like",
+                    #    labels == "M_C" ~ "M:C",
                         labels == "Tyrosine_Like" ~ "Tyrosine Like",
                         labels == "Tryptophan_Like" ~ "Tryptophan Like",
                         labels == "HIX"~"HIX",
-                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
-                        labels == "VisibleHumidic_Like" ~ "Visible Humidic Like",
+                     #   labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humic Like",
                         labels == "Ammonia_umolL" ~ "Ammonium",
                         labels == "TA" ~ "Total Alkalinity",
                         labels == "Phosphate_umolL" ~ "Phosphate",
@@ -139,7 +139,7 @@ p1<-V_pca_Data_all %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = Day_Night))+
   geom_point(size = 2) +
  # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
-  coord_cartesian(xlim = c(-6, 4), ylim = c(-6, 4)) +
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   scale_shape_manual(values = c(22,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
@@ -159,7 +159,7 @@ p1<-V_pca_Data_all %>%
 p1_DL<-V_pca_Data_all %>%
   ggplot(aes(x = PC1, y = PC2, color = PAR_calc_seep+1, size = -Depth_seep))+
   geom_point() +
-  coord_cartesian(xlim = c(-4, 7), ylim = c(-6, 4)) +
+  coord_cartesian(xlim = c(-4, 7), ylim = c(-6, 6)) +
   scale_color_gradient(low = "black", high = "yellow", trans = "log")+
   theme_bw()+
   theme(#legend.position = "none",
@@ -174,7 +174,7 @@ p2<-PC_loadings %>%
       arrow=arrow(length=unit(0.1,"cm")))+
    # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
   #          label = PC_loadings$labels)+
-  coord_cartesian(xlim = c(-6, 4), ylim = c(-6, 4)) +
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   labs(color ="")+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
    theme_bw()+
@@ -187,7 +187,7 @@ p2<-PC_loadings %>%
         axis.text = element_text(size = 16))
 
 VarariPCA<-p1+p2+ 
-  patchwork::plot_annotation("Varari Plates", 
+  patchwork::plot_annotation(#"Varari Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
@@ -449,8 +449,9 @@ Data %>%
 ## Calculate the ranges for each parameter
 ranges<-Data %>%
   filter(Plate_Seep=="Seep") %>% # just do the seep data
-  select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
-  pivot_longer(cols = c(Salinity, TA: Lignin_Like, TempInSitu_seep)) %>%
+  select(Location, Salinity, TA,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX, TempInSitu_seep)%>%
+ # select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
+  pivot_longer(cols = c(Salinity, TA: TempInSitu_seep)) %>%
   drop_na()%>%
   group_by(Location, name)%>%
   summarise(min = round(min(value),2),
@@ -465,13 +466,13 @@ ranges<-Data %>%
       range = paste0("[",min," - ",max,unit,"]"),
       nicenames = case_when(name == "TempInSitu_seep" ~ "Temperature",
                             name == "pH" ~ "pH<sub>T</sub>",
-                            name == "Lignin_Like" ~"Lignin Like",
-                            name == "M_C" ~ "M:C",
+                        #    name == "Lignin_Like" ~"Lignin Like",
+                         #   name == "M_C" ~ "M:C",
                             name == "Tyrosine_Like" ~ "Tyrosine Like",
                             name == "Tryptophan_Like" ~ "Tryptophan Like",
                             name == "HIX"~"HIX",
-                            name == "MarineHumic_Like" ~ "Marine Humic Like",
-                            name == "VisibleHumidic_Like" ~ "Visible Humidic Like",
+                          #  name == "MarineHumic_Like" ~ "Marine Humic Like",
+                            name == "VisibleHumidic_Like" ~ "Visible Humic Like",
                             name == "Ammonia_umolL" ~ "Ammonium",
                             name == "TA" ~ "Total Alkalinity",
                             name == "Phosphate_umolL" ~ "Phosphate",
@@ -541,6 +542,7 @@ labels <- glue_data(test,
 names(labels)<-test$name
   
 test %>%
+  filter(!name %in% c("MarineHumic_Like","Lignin_Like","M_C") )%>%
   ggplot(aes(x = fct_reorder(name, estimate, .desc = TRUE),y = 1, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
@@ -577,6 +579,7 @@ cortest<-Data %>%
   mutate(sig = ifelse(p.value<0.05, 1,0 ))# add a 1 if significant correlation (to 0.1 pvalue)
 
 cortest %>%
+  filter(!name %in% c("MarineHumic_Like","Lignin_Like","M_C") )%>%
   ggplot(aes(x = fct_reorder(name, abs(estimate)), y = Location, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
@@ -600,6 +603,7 @@ ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 5)
 cortest %>%
   left_join(ranges) %>% # join with the ranges
   filter(Location == "Varari") %>%
+  filter(!name %in% c("MarineHumic_Like","Lignin_Like","M_C") )%>%
   ggplot(aes(x = fct_reorder(nicenames, estimate),y = 1, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
