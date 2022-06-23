@@ -208,20 +208,22 @@ models2 %>%
  # geom_text(aes(label = CowTagID))+
   geom_smooth(method = "lm", color = "black") +
   geom_hline(yintercept = 0, lty = 2)+
-  scale_size_binned("%N (Nutrient Loading)") +
+  scale_size_binned("%N (Nutrient Loading)",
+                    guide = guide_legend(title.position = "top")) +
   scale_color_manual(values = c("#6A3937","#89A5A7"))+
-  labs(y = "log ratio of calcifiers to fleshy algae",
+  labs(y = "log ratio of fleshy algae to calcifiers",
        color = "",
        x = "&delta;<sup>15</sup>*N* (Nutrient Source)")+
   annotate("text", x = 4.75, y = 0.5, label = "Fleshy algal-dominated", size = 10)+
   annotate("text", x = 4.75, y = -0.5, label = "Calcifier-dominated", size = 10)+
   theme_bw()+
   theme(legend.direction = "horizontal",
+        
         legend.position = c(.25, .7),
         axis.title.x = element_markdown(size = 18),
         axis.title.y = element_markdown(size = 18),
         axis.text = element_markdown(size = 16),
-        legend.title = element_text(size = 16),
+        legend.title = element_text(size = 18),
         legend.text = element_text(size=12))
 
 ggsave(here("Output","Benthic15NV.png"), width = 10, height = 10)
