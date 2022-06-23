@@ -86,13 +86,14 @@ V_pca_Data<-Data %>%
   anti_join(remove)%>%
   anti_join(remove2)%>%
  # filter(Location == "Varari", Tide %in% c("High","Low")) %>%
-  filter(Location == "Varari", Plate_Seep=="Plate") %>%
+  # filter(DateTime %in% c(ymd_hms("2021-08-05 11:57:00"),ymd_hms("2021-08-05 00:00:00"),ymd_hms("2021-08-08 18:30:00"), ymd_hms("2021-08-08 07:30:00"), ymd_hms("2021-08-04 23:51:00"))) %>%
+   filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
   select(Salinity,pH,Phosphate_umolL:Lignin_Like)%>%
   drop_na()
 
 # Run the PCA
-pca_V <- prcomp(V_pca_Data, scale. = TRUE, center = TRUE)
+pca_V <- prcomp(log(V_pca_Data+0.1), scale. = TRUE, center = TRUE)
 
 # Extract the scores and loadings
 PC_scores <-as_tibble(pca_V$x[,1:2])
@@ -125,6 +126,8 @@ V_pca_Data_all<-Data %>%
   anti_join(remove)%>%
   anti_join(remove2)%>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
+  # filter(DateTime %in% c(ymd_hms("2021-08-05 11:57:00"),ymd_hms("2021-08-05 00:00:00"),ymd_hms("2021-08-08 18:30:00"), ymd_hms("2021-08-08 07:30:00"), ymd_hms("2021-08-04 23:51:00"))) %>%
+  
 #  filter(Location == "Varari", Tide %in% c("High","Low")) %>%
 # drop_na(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL) %>%
   drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%

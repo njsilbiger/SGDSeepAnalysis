@@ -12,6 +12,7 @@ library(patchwork)
 library(here)
 library(ggridges)
 library(seacarb)
+library(ggtext)
 
 # load the 24 hour chemistry data #####################
 Data_Dry<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv") %>%
@@ -512,7 +513,7 @@ lowVarari %>%
   theme_bw()
 
 pbox<-lowVarari %>%
-  ggplot(aes(x = SGDpres, y = NN_umolL, fill = SGDpres))+
+  ggplot(aes(x = fct_reorder(SGDpres, NN_umolL, .desc = FALSE), y = NN_umolL, fill = SGDpres))+
   geom_boxplot(alpha = 0.5)+
   geom_jitter(width = 0.1, shape = 21)+
   theme_bw()+
@@ -619,7 +620,7 @@ plot_all<-Cdata %>%
          Location == "Varari",
          Date != ymd("2021-08-06"), 
          Season == "Dry") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide))+
+  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide))+
   geom_hline(aes(yintercept = 0), lty = 2)+
   geom_vline(aes(xintercept = 0), lty = 2)+
   geom_point(aes(shape = Day_Night))+
@@ -635,7 +636,7 @@ plot_all<-Cdata %>%
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   geom_curve(
-    aes(x = -100, y = -20, xend = -90, yend = -30),
+    aes(x = -100, y = -6, xend = -90, yend = -14),
     curvature = -0.5,
     arrow = arrow(
       length = unit(0.03, "npc"), 
@@ -646,7 +647,7 @@ plot_all<-Cdata %>%
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
   geom_curve(
-    aes(x = -25, y = -30, xend = -40, yend = -20),
+    aes(x = -25, y = -22, xend = -40, yend = -12),
     curvature = 0.5,
     arrow = arrow(
       length = unit(0.03, "npc"), 
@@ -656,8 +657,8 @@ plot_all<-Cdata %>%
     size = 1.2,
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
-  annotate("text",x = -100, y = -17, label = "Low Tide", size = 8)+
-  annotate("text",x = -25, y = -32, label = "High Tide", size = 8)+
+  annotate("text",x = -100, y = -4, label = "Low Tide", size = 8)+
+  annotate("text",x = -25, y = -28, label = "High Tide", size = 8)+
     theme_bw()+
   
   theme(legend.position="none",
@@ -730,7 +731,7 @@ plotN_all<-Cdata %>%
 
 ## Make a plot with an inset
 plot_all + annotation_custom(ggplotGrob(plotN_all), xmin = -50,
-                           xmax = 10, ymin = -40, ymax = -85)
+                           xmax = 10, ymin = -15, ymax = -40)
 ggsave(here("Output","HighLowTADIC.png"), width = 10, height = 8)
 
 

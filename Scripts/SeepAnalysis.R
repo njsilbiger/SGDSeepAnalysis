@@ -663,6 +663,30 @@ AllVarari_Dry %>%
   ggplot(aes(x = Depth, y = Salinity_psu))+
   geom_point()
 
+AllVarari_Dry %>%
+   filter(date < mdy("8/14/21") & date > mdy("8/11/21") |
+           date > mdy("8/18/21"))%>%
+  ggplot(aes(x = Depth, y = Salinity_psu))+
+  geom_point(alpha = 0.3)+
+  geom_density_2d_filled(alpha = 0.9)+
+  geom_density_2d(size = 0.25, colour = "black")+
+  xlim(0.2,1.8)+
+  labs(#fill = "Density",
+       x = "Depth (m)",
+       y = "Salinity")+
+  scico::scale_fill_scico_d(palette = "bilbao") +
+  theme_bw()+
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 18),
+        legend.position = "none")
+ggsave(here("Output","SalinityDepthDensity.png"), height = 6, width = 6)
+
+AllVarari_Dry %>%
+  filter(date > mdy("8/18/21"))%>%
+  mutate(day = factor(day(date))) %>%
+  ggplot(aes(x = Depth, y = Salinity_psu, color = day))+
+  geom_point()
+
 ## Timeseries of just Depth, Salinity, pH, and Salinity
 
 # New facet label names for supp variable
