@@ -126,17 +126,17 @@ Cdata %>%
   geom_point()+facet_wrap(~Location, scale = "free")
 
 # Create a TA mixing line--- think of maybe doing one for each season for better accuarcy
-VarariMixModel<-lm (TA~Salinity, data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
+VarariMixModel<-lmer(TA~Salinity+(1|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
 Vco<-coef(VarariMixModel)
 
-CabralMixModel<-lm (TA~Salinity, data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
+CabralMixModel<-lmer(TA~Salinity+(1|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
 Cco<-coef(CabralMixModel)
 
 # DIC mixing line
-VarariMixModelDIC<-lm (DIC~Salinity, data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
+VarariMixModelDIC<-lmer(DIC~Salinity+(1|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
 VcoDIC<-coef(VarariMixModelDIC)
 
-CabralMixModelDIC<-lm (DIC~Salinity, data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
+CabralMixModelDIC<-lmer(DIC~Salinity+(1|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
 CcoDIC<-coef(CabralMixModelDIC)
 
 # NN mixing line
@@ -155,14 +155,29 @@ CcoPO<-coef(CabralMixModelPO)
 
 ## put them in the dataframe
 Cdata <- Cdata %>% # add the predicted mixing line
-  mutate(TA.mix = ifelse(Location  == "Varari",Salinity*Vco[2]+Vco[1],Salinity*Cco[2]+Cco[1]), # mixing line TA
-         TA.diff = TA-TA.mix, # observed - predicted to see how biology changes TA above what is expected by mixing
-         DIC.mix = ifelse(Location  == "Varari",Salinity*VcoDIC[2]+VcoDIC[1],Salinity*CcoDIC[2]+CcoDIC[1]),
-         DIC.diff = DIC - DIC.mix,
-         NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
-         NN.diff = NN_umolL - NN.mix,
+  mutate(TA.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*Vco$Season[1,2]+Vco$Season[1,1],
+                            Location  == "Varari" & Season == "Wet" ~Salinity*Vco$Season[2,2]+Vco$Season[2,1],
+                            Location  == "Cabral" & Season == "Dry" ~Salinity*Cco$Season[1,2]+Cco$Season[1,1],
+                            Location  == "Cabral" & Season == "Wet" ~Salinity*Cco$Season[2,2]+Cco$Season[2,1]
+                            )) %>%
+  mutate(DIC.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*VcoDIC$Season[1,2]+VcoDIC$Season[1,1],
+                                     Location  == "Varari" & Season == "Wet" ~Salinity*VcoDIC$Season[2,2]+VcoDIC$Season[1,1],
+                                     Location  == "Cabral" & Season == "Dry" ~Salinity*CcoDIC$Season[1,2]+CcoDIC$Season[1,1],
+                                     Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[1,1]
+           )) %>%
+             
+           
+         #   ifelse(Location  == "Varari",Salinity*Vco[2]+Vco[1],Salinity*Cco[2]+Cco[1]), # mixing line TA
+         # TA.diff = TA.mix-TA, # observed - predicted to see how biology changes TA above what is expected by mixing
+         # DIC.mix = ifelse(Location  == "Varari",Salinity*VcoDIC[2]+VcoDIC[1],Salinity*CcoDIC[2]+CcoDIC[1]),
+         # DIC.diff = DIC.mix-DIC,
+        mutate(
+          TA.diff = TA.mix- TA,
+          DIC.diff = DIC.mix - DIC,
+          NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
+         NN.diff =  NN.mix - NN_umolL,
          PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
-         PO.diff = Phosphate_umolL - PO.mix
+         PO.diff =  PO.mix -Phosphate_umolL 
          )
 
 ## Use the well and spring as endmembers and try again 

@@ -226,8 +226,11 @@ vector[n_plate] TA_diff;
 
 // calculate predicted TA based on mixing from plate data
 for (i in 1: n_plate){
-TA_pred[i] = alpha[season_plate[i]] + Salplate[i] * beta;
-TA_diff[i] = TA_pred[i] - TAplate[i];
+ TA_pred[i] = alpha[season_plate[i]] + Salplate[i] * beta;
+ TA_diff[i] = TA_pred[i] - TAplate[i];
+
+//real TA_pred = (alpha[season_plate[i]] + Salplate[i] * beta)-TAplate[i];
+//TA_diff[i] = normal_rng(TA_pred, sigma);
   }
 
 }",
@@ -237,5 +240,26 @@ TA_diff[i] = TA_pred[i] - TAplate[i];
 stan_model2 <- "stan_model2.stan"
 
 #rstan_options(disable_march_warning = TRUE)
-fit2 <- stan(file = stan_model2, data = stan_data, warmup = 1000, iter = 3000, chains = 3, cores = 2, thin = 2)
+fit2 <- stan(file = stan_model2, data = stan_data, warmup = 1000, iter = 3000, chains = 3, cores = 2, thin = 2,
+             pars = c('beta', 'sigma', 'alpha', 'TA_diff', 'y_rep'))
+
+# assess the fit
+posterior <- extract(fit2)
+#stan_dens(fit)
+
+## extract the TA_diff values
+TA_diff<-summary(fit2, pars = 'TA_diff')$summary
+
+TA_pred<-summary(fit2, pars = 'TA_pred')$summary
+## look at the relationship between bayesian and frequentist TA diff values
+PlateAll<-bind_cols(PlateDataVarari, TA_diff)
+
+PlateAll %>%
+  ggplot()+
+  geom_point(aes(x = TA.diff, y = mean,color = Season))+
+  geom_lineribbon(aes(x = TA.diff, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.2)
+
+y_rep <- as.matrix(fit2, pars = "y_rep")
+
+ppc_dens_overlay(SeepDataVarari$TA, y_rep[1:200, ])
 
