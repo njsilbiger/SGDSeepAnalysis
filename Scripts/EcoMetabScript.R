@@ -36,7 +36,7 @@ turb_wet<- read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site
 
 ## Remove the one crazy Ammonium outlier
 remove2<-Data_Dry %>% filter(CowTagID=="V2", Tide =="Low", Day_Night=="Day", Date == ymd("2021-08-08"))
-removelow<- Data_Dry %>%
+removelow<- Data_Dry %>% # remove the not real low tide
   filter(Date == ymd("2021-08-06") & Tide == "Low" & Plate_Seep == "Plate")
 
 
@@ -161,9 +161,9 @@ Cdata <- Cdata %>% # add the predicted mixing line
                             Location  == "Cabral" & Season == "Wet" ~Salinity*Cco$Season[2,2]+Cco$Season[2,1]
                             )) %>%
   mutate(DIC.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*VcoDIC$Season[1,2]+VcoDIC$Season[1,1],
-                                     Location  == "Varari" & Season == "Wet" ~Salinity*VcoDIC$Season[2,2]+VcoDIC$Season[1,1],
+                                     Location  == "Varari" & Season == "Wet" ~Salinity*VcoDIC$Season[2,2]+VcoDIC$Season[2,1],
                                      Location  == "Cabral" & Season == "Dry" ~Salinity*CcoDIC$Season[1,2]+CcoDIC$Season[1,1],
-                                     Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[1,1]
+                                     Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[2,1]
            )) %>%
              
            
