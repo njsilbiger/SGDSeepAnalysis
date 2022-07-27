@@ -111,7 +111,7 @@ Cdata <- Cdata %>% # add the predicted mixing line
   mutate(
     TA.diff = TA.mix- TA, # TA expected by mixing alone - TA at plate
     DIC.diff = DIC.mix - DIC,
-    DIC_norm = DIC.diff - (TA.diff/2))
+    DIC_norm = DIC.diff - (TA.diff/2)) # calculate organic carbon only
    
     #### Run Analysis #####
 
