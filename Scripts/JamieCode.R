@@ -129,13 +129,13 @@ model {
 
  // generate model for residuals ~ treatment with plateID as random
  
- mu_resid = alpha_plate + beta_resid*PR_Resid[i];
+ mu_resid = alpha_plate + beta_resid*Treatment[i];
  
  // for (j in 1: n_PlateID){
  // mu_resid = alpha_plate[PlateID[j]] + beta_resid*PR_Resid[i];
  // }
  
- y_resid ~ normal(mu_resid, sigma_resid);
+ PR_Resid ~ normal(mu_resid, sigma_resid);
 
 }
 
