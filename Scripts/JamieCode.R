@@ -22,6 +22,7 @@ library(ggtext)
 library(lme4)
 library(lmerTest)
 library(broom)
+library(ggthemes)
 
 ##### Load data ###########
 
@@ -50,6 +51,121 @@ stan_data <- list(N=length(Data_sub_control$Treatment), # the length of the cont
                   AllpHmin = Data_sub$minpH, # All pH min
                   n_PlateID = length(unique(Data_sub$PlateID))# number of plates
                   )
+
+
+
+
+stanvars <- stanvar(scode = "vector[N] y_rep;
+ vector[n_resid] PR_expected;
+ vector[n_resid] PR_Resid;
+
+ for (i in 1:N) {
+ // generate predictions
+ real y_hat = alpha + x[i] * beta + x2[i] *beta2; // Posterior predictions
+
+ // generate replication values
+ y_rep[i] = normal_rng(y_hat, sigma);
+} // The posterior predictive distribution
+
+
+
+
+
+// calculate predicted PR based on mixing from plate data
+for (i in 1: n_resid){
+
+ // generate model for residuals ~ treatment with plateID as random
+ 
+ PR_expected[i] = alpha + AllpHmin[i] * beta + AllInitial[i]* beta2; // calculate the expected value
+ PR_Resid[i] = AllPR[i] - PR_expected[i]; // calculate the residuals",
+          block = "genquant")
+
+mod1<-brm(bf(y~x+x2), data = data.frame(x = Data_sub_control$minpH, # use pH min for this example as the independent variable
+                                    x2 = Data_sub_control$Initial_PR, # Covariate
+                                    y = Data_sub_control$Final_PR), iter = 10000, chains = 3,
+          save_pars = save_pars(all = TRUE)) 
+
+
+
+#posterio predictive checm
+pp_check(mod1, nsamples = 50)
+
+# model validation. Can use loo_compare for model selection to compare models 
+loo(mod1,
+    moment_match = TRUE)# this deals with problem observations
+
+# Extract posterior values for each parameter
+samples1 <- posterior_samples(mod1, "^b")
+head(samples1)
+
+ggplot(samples1, aes(x = b_x))+
+  geom_density()
+
+pred_draws<-mod1 %>% 
+  epred_draws(newdata = expand_grid(x2 = seq(1,2, by = 0.05),
+                                    x = seq(7.97, 8.02, by = 0.001)), 
+              re_formula = NA)
+
+ggplot(pred_draws, 
+       aes(x = x, y = .epred)) +
+  stat_lineribbon() +
+  geom_point(data =Data_sub_control, aes(x = minpH, y =Final_PR ) )+
+  scale_fill_brewer(palette = "Reds") +
+  labs(x = "min pH", y = "GP",
+       fill = "Credible interval") +
+  theme_clean() +
+  theme(legend.position = "bottom")
+
+# Calculate the residuals using the posterior distributions
+
+predicteddata<-matrix(NA, nrow = length(Data_sub$minpH), ncol = nrow(samples1))
+residualdata<-matrix(NA, nrow = length(Data_sub$minpH), ncol = nrow(samples1))
+
+
+for (i in 1:length(Data_sub$minpH)){
+  # This is the distribution of all the predicted values
+  predicteddata[i,]<-samples1$b_Intercept + samples1$b_x*Data_sub$minpH[i] + samples1$b_x2*Data_sub$Initial_PR[i]
+  # This is the distribution of all the residual values. The mean of each row is the mean residual for each coral
+  residualdata[i,]<-Data_sub$Final_PR[i]-predicteddata[i,]
+}
+
+
+## calculate the mean and SD for each residual value so that I can carry the SD value to the next model as a prior on y
+
+# calculate means by row
+Data_combd<-bind_cols(Data_sub, #add it to the dataset
+tibble(residualdata) %>% 
+  rowwise() %>% 
+  mutate(
+    resid = mean(c_across()),
+    resid_sd = sd(c_across())
+  ) %>%
+  select(resid, resid_sd)
+) 
+  
+
+
+### brms model 2
+
+dist_fm <- bf(
+  resid ~ Treatment + (1|PlateID),
+  sigma ~ resid_sd # let sigma vary by the SD of the residuals data
+)
+
+dist_brm <- brm(dist_fm, data = Data_combd)
+
+
+pp_check(dist_brm)
+
+pp_check(dist_brm, type = "scatter_avg_grouped", group = "Treatment") + 
+    geom_abline(intercept = 0, slope = 1 , color = "red", lty = 2)
+
+#plot(dist_brm)
+
+p1<- conditional_effects(dist_brm) 
+
+plot(p1, plot = FALSE)[[1]] + # plot the effects 
+  geom_hline(yintercept = 0)
 
 ### Write the STAN Model 
 write("// Stan model for simple linear regression with residuals
@@ -101,7 +217,6 @@ vector[N] mu;
 
 generated quantities {
  vector[N] y_rep;
- // vector[n_resid] y_resid;
  vector[n_resid] PR_expected;
  vector[n_resid] PR_Resid;
 
@@ -120,17 +235,16 @@ generated quantities {
 // calculate predicted PR based on mixing from plate data
 for (i in 1: n_resid){
 
-<<<<<<< HEAD
  // generate model for residuals ~ treatment with plateID as random
  
- mu_resid = alpha_plate + beta_resid*Treatment[i];
+// mu_resid = alpha_plate + beta_resid*Treatment[i];
  
  // for (j in 1: n_PlateID){
  // mu_resid = alpha_plate[PlateID[j]] + beta_resid*PR_Resid[i];
  // }
  
- PR_Resid ~ normal(mu_resid, sigma_resid);
-=======
+//PR_Resid ~ normal(mu_resid, sigma_resid);
+
  PR_expected[i] = alpha + AllpHmin[i] * beta + AllInitial[i]* beta2; // calculate the expected value
  PR_Resid[i] = AllPR[i] - PR_expected[i]; // calculate the residuals
 }
@@ -194,32 +308,47 @@ stan_data2 <- list(y = PR_Resid_sum$mean, # PR residual from first model is the 
                   n_resid = length(Data_sub$PlateID), # the length of the data to calculate residuals from
                   n_PlateID = length(unique(Data_sub$PlateID)), # number of plates
                   m1 = PR_Resid_sum$sd, # sigma for each y
-                  SD_rep = 1:length(PR_Resid_sum$sd) # count for each SD replicate
+                  n_SD = length(PR_Resid_sum$sd) # count for each SD replicate
+                  
                   
 )
 
+
+stan_data2 <- list(y = PR_Resid_sum$mean, # PR residual from first model is the y 
+                   Treatment  = Data_sub$Treatment, # make the treatment numbers 1-4
+                   n_treatment = 4, # number of treatments
+                   PlateID = Data_sub$PlateID, # plate ID for the random intercepts
+                   m1 = PR_Resid_sum$sd # sigma for each y
+)
+
+dist_fm <- bf(
+  y ~ Treatment + (1|PlateID),
+  sigma ~ m1
+)
+
+dist_brm <- brm(dist_fm, data = stan_data2)
+
+plot(dist_brm)
 
 write("// Stan model for simple linear regression with residuals
 
 data {
  int < lower = 1 > n_treatment; // number of treatments
-// int < lower = 1 > n_PlateID; // number of plates
- int < lower = 1 > n_resid; // number of plates
+ int < lower = 1 > n_PlateID; // number of plates
+ int < lower = 1 > n_resid; // number of residual values
  vector[n_resid] y; // Response the PR resid from prior model
  int<lower = 1, upper = n_treatment> Treatment[n_resid]; // Treatment variable
- vector[n_resid] PlateID; // PlateID for random effect of plate
+ int<lower = 1, upper = n_PlateID> PlateID [n_resid]; // PlateID for random effect of plate
  vector[n_resid] m1; // SD for each y
- vector[n_resid] SD_rep;
+ 
  
   }
 
 parameters {
 
  vector[n_treatment] beta; // Slope (regression coefficients for x)
- // vector< lower = 0 >[n_resid]  sigma; // sigma for every y
-  real < lower = 0 > sigma; // Error SD
- // vector[n_PlateID] alpha_plate; // Intercept for wach plate
- real alpha_plate;
+ vector[n_PlateID] alpha_plate; // random intercept for each plate
+ 
 
 }
 
@@ -227,33 +356,40 @@ parameters {
 model {
 
 // conditional mean
-vector[n_resid] mu;
-// real sigma_hat;
-
+ vector[n_resid] mu;
+ vector[n_resid] sigma;
+// real<lower = 0> sigma[n_resid];
 
 // informative prior on sigma based on model 1
- 
- // sigma ~ normal(m1, sigma_hat);
+
+  
+ sigma ~ lognormal(m1,1);
 
 // linear combination
- mu = alpha_plate + beta[Treatment];
+ mu = alpha_plate[n_PlateID] + beta[Treatment];
 
 // likelihood function
- y ~ normal(mu, sigma*m1);
+ y ~ normal(mu, sigma);
+ 
+
  
  }
 
 generated quantities {
- vector[n_resid] y_rep;
+   vector[n_resid] y_rep;
+   vector[n_resid] sigma_hat;
+   
 
-
- for (i in 1:n_resid) {
+  for (i in 1:n_resid) {
  // generate predictions
- real y_hat = alpha_plate + Treatment[i] ; // Posterior predictions
-
- // generate replication values
- y_rep[i] = normal_rng(y_hat, sigma*m1[i]);
-} // The posterior predictive distribution
+    
+    real y_hat = alpha_plate[PlateID[i]] + beta[Treatment[i]]; // Posterior predictions
+      // generate replication values
+    
+     sigma_hat[i] = lognormal_rng (m1[i],1);
+     
+     y_rep[i] = normal_rng(y_hat, sigma_hat[i]);
+   } // The posterior predictive distribution
 
 
 }",
@@ -278,7 +414,7 @@ ppc_dens_overlay(stan_data2$y, y_rep[1:200, ])
 
 
 # plot the distributions for each parameter
-mcmc_dens(posterior_array3, c("beta[1]","beta[2]","beta[3]", "beta[4]", "sigma"),
+mcmc_dens(posterior_array3, c("beta[1]","beta[2]","beta[3]", "beta[4]"),
           facet_args = list(nrow = 2))
 
 
