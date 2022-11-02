@@ -82,17 +82,17 @@ Cdata[,c("CO2","HCO3","CO3","DIC","OmegaArag","OmegaCalcite","pCO2","fCO2")]<-
   CO2[,c("CO2","HCO3","CO3","DIC","OmegaAragonite","OmegaCalcite","pCO2","fCO2")]
 
 # Create a TA mixing line the frequentist way--- think of maybe doing one for each season for better accuarcy
-VarariMixModel<-lmer(TA~Salinity+(1|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
+VarariMixModel<-lmer(TA~Salinity+(Salinity|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
 Vco<-coef(VarariMixModel)
 
-CabralMixModel<-lmer(TA~Salinity+(1|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
+CabralMixModel<-lmer(TA~Salinity+(Salinity|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
 Cco<-coef(CabralMixModel)
 
 # DIC mixing line
-VarariMixModelDIC<-lmer(DIC~Salinity+(1|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
+VarariMixModelDIC<-lmer(DIC~Salinity+(Salinity|Season), data = Cdata %>% filter(Location == "Varari", Plate_Seep == "Seep"))
 VcoDIC<-coef(VarariMixModelDIC)
 
-CabralMixModelDIC<-lmer(DIC~Salinity+(1|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
+CabralMixModelDIC<-lmer(DIC~Salinity+(Salinity|Season), data = Cdata %>% filter(Location == "Cabral", Plate_Seep == "Seep"))
 CcoDIC<-coef(CabralMixModelDIC)
 
 
