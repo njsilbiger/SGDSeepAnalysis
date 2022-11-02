@@ -113,6 +113,7 @@ Cdata %>%
 Cdata %>%
   filter(Plate_Seep == "Seep") %>% 
   ggplot(aes(x = Salinity, y = DIC, color = Season))+
+  geom_smooth(method = "lm")+
   geom_point()+facet_wrap(~Location, scale = "free")
 
 Cdata %>%
@@ -252,7 +253,8 @@ Cdata %>%
 Cdata %>%
   anti_join(removelow)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide,
+             shape = Day_Night))+
   geom_point()+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
