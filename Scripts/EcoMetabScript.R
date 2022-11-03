@@ -1014,7 +1014,7 @@ models2_both <-models_both %>%
   mutate(logratio = log((TotalAlgae+1)/(TotalCalc+1)))
 
 models2_both %>%
-  ggplot(aes(x = Temperature, y = logratio))+
+  ggplot(aes(x = TotalCoral, y = estimate))+
   geom_point()+
   geom_smooth(method = "lm")+
   geom_label(aes(label = CowTagID))+
@@ -1029,6 +1029,46 @@ Cdata %>%
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location)
+
+Cdata %>%
+  filter(NEP<60)%>%
+  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(Benthic.Cover_Categories) %>%
+  filter(Location == "Varari", Plate_Seep == "Plate") %>%
+  ggplot(aes(x = log(NN_umolL), y = NEP))+
+  geom_point(aes(color = Season))+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location)
+
+moda<-lm(NEP~log(NN_umolL), data = Cdata %>%
+           filter(NEP<60)%>%
+           left_join(bind_rows(turbdata, turb_wet)) %>%
+           left_join(Benthic.Cover_Categories) %>%
+           filter(Location == "Varari", Plate_Seep == "Plate"))
+
+anova(moda)
+
+
+Cdata %>%
+  filter(NEP<60)%>%
+  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(Benthic.Cover_Categories) %>%
+  filter(Location == "Varari", Plate_Seep == "Plate") %>%
+  ggplot(aes(x = Salinity, y = pH, shape = Tide_Time))+
+  geom_point(aes(color = Season))+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season)
+
+
+modb<-lm(NEC~pH, data = Cdata %>%
+           filter(NEP<60)%>%
+           left_join(bind_rows(turbdata, turb_wet)) %>%
+           left_join(Benthic.Cover_Categories) %>%
+           filter(Location == "Varari", Plate_Seep == "Plate"))
+
+anova(modb)
+
+
 
 ## Calculate summaries
 AllDataSummary<- Cdata %>%
