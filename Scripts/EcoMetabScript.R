@@ -88,7 +88,9 @@ Cdata<-Data %>%
 
 #calculate rest of carbonate params
 CO2<-carb(flag=8, Cdata$pH, Cdata$TA/1000000, S=Cdata$Salinity, 
-          T=Cdata$Temperature, Patm=1, P=0, Pt=Cdata$Phosphate_umolL/1000000, Sit=Cdata$Silicate_umolL/1000000, k1k2="x", kf="x", ks="d", pHscale="T", b="u74", gas="potential")
+          T=Cdata$Temperature, Patm=1, P=0, 
+       #   Pt=Cdata$Phosphate_umolL/1000000, Sit=Cdata$Silicate_umolL/1000000, 
+          k1k2="x", kf="x", ks="d", pHscale="T", b="u74", gas="potential")
 
 #TA is divided by 1000 because all calculations are in mol/kg in the seacarb package
 
@@ -112,7 +114,43 @@ Cdata[,c("CO2","HCO3","CO3","DIC","OmegaArag","OmegaCalcite","pCO2","fCO2")]<-
 ### Pull out the endmembers ###
 ## FOr the seep, we will take the min salinity value as the end member, while we have well samples, I don't believe this is as representative because the water has not gone through the sediment yet.
 
+# From the Maunalua paper --- this only works for Varari... V13 is the endmember for upstream sample for delta TA... use average high tide salinity for "ocean sample"
+# for each location and each season
 
+# mutate(TA.pred = case_when(Location == 'Varari' & Season == 'Dry'~ TA+(TA - TA.seep.end)*((Salinity - High.Salinity)/(Seep.salinity - Salinity)),
+                            #Location == 'Varari' & Season == 'Wet'~ TA+(TA - TA.seep.end)*((Salinity - High.Salinity)/(Seep.salinity - Salinity))
+#                            )
+
+## calculate the endmembers from the springs
+Vend_spring<-Cdata %>%
+  filter(Plate_Seep == "Spring", CowTagID == "VSPRING") %>%
+  select(Location,  TA_Spring = TA,DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
+  slice(1)
+
+Cend_spring<-Cdata %>%
+  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID == "CSPRING_ROAD") %>%
+  select(Location, TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
+  slice(1)
+
+Spring<-bind_rows(Vend_spring, Cend_spring)
+## Calculate endmembers for the "ocean" which will be the average salinity or silicate during high tide by season
+
+endmembers<- Cdata %>%
+  filter(Plate_Seep == "Plate")%>%
+  drop_na(Silicate_umolL)%>%
+   group_by(Location, Season, Tide) %>%
+   summarise_at(vars(Salinity, Silicate_umolL), .funs = list(median)) %>%
+   filter(Tide == "High") %>%
+   rename(Salinity_High = Salinity, Silicate_umolL_High = Silicate_umolL) %>%
+   select(!Tide) %>%
+   left_join(Spring) # bring in the spring data
+
+
+Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to make it easier to calculate
+  
+
+
+## Select the VSpring  which is after it had gone through the sand. The two values are almost identica
 
 ## instead of using end members, use the regression between TA and salinity at the seep to make a mixing line and predict what
 ## TA should be at the plate given the salinity from the line. Then calculate deviations from the line to account for biology
@@ -176,34 +214,48 @@ CcoPO<-coef(CabralMixModelPO)
 
 ## put them in the dataframe
 Cdata <- Cdata %>% # add the predicted mixing line
-  mutate(TA.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*Vco$Season[1,2]+Vco$Season[1,1],
-                            Location  == "Varari" & Season == "Wet" ~Salinity*Vco$Season[2,2]+Vco$Season[2,1],
-                            Location  == "Cabral" & Season == "Dry" ~Salinity*Cco$Season[1,2]+Cco$Season[1,1],
-                            Location  == "Cabral" & Season == "Wet" ~Salinity*Cco$Season[2,2]+Cco$Season[2,1]
-                            )) %>%
-  mutate(DIC.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*VcoDIC$Season[1,2]+VcoDIC$Season[1,1],
-                                     Location  == "Varari" & Season == "Wet" ~Salinity*VcoDIC$Season[2,2]+VcoDIC$Season[2,1],
-                                     Location  == "Cabral" & Season == "Dry" ~Salinity*CcoDIC$Season[1,2]+CcoDIC$Season[1,1],
-                                     Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[2,1]
-           )) %>%
-             
-           
+  # mutate(TA.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*Vco$Season[1,2]+Vco$Season[1,1],
+  #                           Location  == "Varari" & Season == "Wet" ~Salinity*Vco$Season[2,2]+Vco$Season[2,1],
+  #                           Location  == "Cabral" & Season == "Dry" ~Salinity*Cco$Season[1,2]+Cco$Season[1,1],
+  #                           Location  == "Cabral" & Season == "Wet" ~Salinity*Cco$Season[2,2]+Cco$Season[2,1]
+  #                           )) %>%
+  # mutate(DIC.mix = case_when(Location  == "Varari" & Season == "Dry" ~Salinity*VcoDIC$Season[1,2]+VcoDIC$Season[1,1],
+  #                                    Location  == "Varari" & Season == "Wet" ~Salinity*VcoDIC$Season[2,2]+VcoDIC$Season[2,1],
+  #                                    Location  == "Cabral" & Season == "Dry" ~Salinity*CcoDIC$Season[1,2]+CcoDIC$Season[1,1],
+  #                                    Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[2,1]
+  #         )) %>%
+   mutate(TA.mix = TA+(TA - TA_Spring)*((Salinity - Salinity_High)/(Salinity_Spring - Salinity)), # account for SGD mixing
+          DIC.mix = DIC+(DIC - DIC_Spring)*((Salinity - Salinity_High)/(Salinity_Spring - Salinity))                                  
+           ) 
+
+
+# For Varari, Use Ta from V13 as the "incoming water"... ignore Cabral for now
+
+incoming<-Cdata %>%
+  filter(CowTagID == "V13") %>%
+  select(Location,Season, Date, Tide, Day_Night, TA_incom = TA.mix,DIC_incom = DIC.mix)
+
+
+Cdata<-Cdata %>%
+  left_join(incoming) %>%
          #   ifelse(Location  == "Varari",Salinity*Vco[2]+Vco[1],Salinity*Cco[2]+Cco[1]), # mixing line TA
          # TA.diff = TA.mix-TA, # observed - predicted to see how biology changes TA above what is expected by mixing
          # DIC.mix = ifelse(Location  == "Varari",Salinity*VcoDIC[2]+VcoDIC[1],Salinity*CcoDIC[2]+CcoDIC[1]),
          # DIC.diff = DIC.mix-DIC,
         mutate(
-          TA.diff = TA.mix- TA,
-          DIC.diff = DIC.mix - DIC,
-          NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
-         NN.diff =  NN.mix - NN_umolL,
-         PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
-         PO.diff =  PO.mix -Phosphate_umolL,
+          # TA.diff = TA.mix- TA,
+          # DIC.diff = DIC.mix - DIC,
+          TA.diff = TA_incom- TA.mix,
+          DIC.diff = DIC_incom - DIC.mix,
+          #  NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
+         # NN.diff =  NN.mix - NN_umolL,
+         # PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
+         # PO.diff =  PO.mix -Phosphate_umolL,
          NEC = ((rho*0.575*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
          NEP = ((rho*0.575*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000 #mmol m-2 hr-1
          )
 
-## Use the well and spring as endmembers and try again 
+
 
 # Endmembers_HighSGD<-Cdata %>%
 #  # filter(Plate_Seep == "Seep") %>%
@@ -333,9 +385,8 @@ Cdata %>%
   geom_point()+
 #  geom_hline(yintercept = 0)+
 #  geom_vline(xintercept = 0)+
-  geom_smooth(method = "lm")
-#+
- # facet_wrap(~Location*Season, scales = "free")
+  geom_smooth(method = "lm")+
+ facet_wrap(~Location*Season, scales = "free")
 
 
 
@@ -416,7 +467,7 @@ Cdata %>% ## In Varari you see the effect in the correct direction at low night,
 #  Temperature vs delta DIC
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = Temperature, y = DIC.diff))+
+  ggplot(aes(x = Temperature, y = DIC.diff, color = Day_Night))+
   geom_smooth(method = "lm")+
   geom_point()+
   facet_wrap(~Location*Season, scales = "free")
@@ -432,7 +483,7 @@ Cdata %>%
 # NN vs delta DIC
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = log(NN_umolL), y = DIC.diff, shape = Day_Night))+
+  ggplot(aes(x = log(NN_umolL), y = DIC.diff, shape = Tide_Time))+
   geom_smooth(method = "lm")+
   geom_point()+
   facet_wrap(~Location*Season, scales = "free")
@@ -902,7 +953,9 @@ models<-Cdata %>%
   unnest(cols = data) %>%
   group_by(Location,CowTagID, Season, estimate)%>%
   #summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL), .funs = ~(max(.x,na.rm=TRUE)))%>%
-  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent, Phosphate_umolL, Temperature, Ammonia_umolL), .funs = ~(sd(.x,na.rm=TRUE)/mean(.x,na.rm=TRUE)))%>%
+#  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent, Phosphate_umolL, Temperature, Ammonia_umolL), .funs = ~(mean(.x,na.rm=TRUE)))%>%
+#  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent, Phosphate_umolL, Temperature, Ammonia_umolL), .funs = ~(sd(.x,na.rm=TRUE)/mean(.x,na.rm=TRUE)))%>%
+  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent, Phosphate_umolL, Temperature, Ammonia_umolL), .funs = ~(max(.x,na.rm=TRUE)-min(.x,na.rm=TRUE)))%>%
 #  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent, Phosphate_umolL, Temperature), .funs = ~(mean(.x,na.rm=TRUE)))%>%
   
 #  summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL, del15N, N_percent), .funs = ~(max(.x,na.rm=TRUE)-min(.x,na.rm=TRUE)))%>%
@@ -938,6 +991,9 @@ models %>%
   geom_smooth(method = "lm")+
   geom_label(aes(label = CowTagID))+
   facet_wrap(~Location*Season, scales = "free")
+
+mod_NN<-lm(estimate ~ NN_umolL*Season, data = models)
+anova(mod_NN)
 
 models_both %>%
   ggplot(aes(x = Silicate_umolL, y = estimate))+
@@ -980,6 +1036,13 @@ models %>%
 
 models %>%
   ggplot(aes(x = N_percent, y = estimate))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_label(aes(label = CowTagID))+
+  facet_wrap(~Location*Season, scales = "free")
+
+models %>%
+  ggplot(aes(x = del15N, y = estimate))+
   geom_point()+
   geom_smooth(method = "lm")+
   geom_label(aes(label = CowTagID))+
@@ -1137,6 +1200,12 @@ anova(moda)
 
 testing %>%  
   ggplot(aes(x = log(NN_umolL_mean), y = NEP_sum, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season, scales = "free")
+
+testing %>%  
+  ggplot(aes(x = log(NN_umolL_mean), y = NEC_sum, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Season, scales = "free")
