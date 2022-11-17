@@ -1092,3 +1092,57 @@ modpHratio<-lm(pH~logratio, data =
                  filter(Location  == "Varari", Plate_Seep == "Plate", logratio > 0)) 
 #removed the one outlier 
 anova(modpHratio)
+
+## boxplots of NEC and NEP
+Cdata %>%
+  filter(Plate_Seep == "Plate")%>%
+  droplevels()%>%
+ggplot(aes(x = Tide, y = NEP, color = Day_Night))+
+  geom_boxplot()+
+  facet_wrap(~Location*Season)
+
+Cdata %>%
+  filter(Plate_Seep == "Plate")%>%
+  droplevels()%>%
+  ggplot(aes(x = Tide, y = NEC, color = Day_Night))+
+  geom_boxplot()+
+  facet_wrap(~Location*Season, scales = "free")
+
+# average rate at each location by mean or cov in silicate
+
+CoV <- function(x){
+  var(x, na.rm = TRUE)/mean(x, na.rm = TRUE)
+}
+
+testing<-Cdata %>%
+  filter(Plate_Seep == "Plate", NEC < 5) %>%
+  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(Benthic.Cover_Categories) %>%
+  group_by(Location,  CowTagID, Season)%>%
+  summarise_at(vars(Salinity:Ammonia_umolL, pCO2, NEC, NEP), .funs =  c("mean" = mean, "CoV" = CoV, "sum" = sum)) %>%
+  droplevels()%>%
+  drop_na()
+  
+testing %>%  
+ggplot(aes(x = log(Silicate_umolL_CoV), y = NEC_mean, color = Season))+
+   geom_point()+
+  geom_smooth(method = "lm")+
+   facet_wrap(~Season, scales = "free")
+
+moda<-lm(NEC_mean ~ pH_mean*Season, data = testing)
+anova(moda)  
+
+moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing)
+anova(moda)  
+
+testing %>%  
+  ggplot(aes(x = log(NN_umolL_mean), y = NEP_sum, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season, scales = "free")
+
+moda<-lm(NEC_mean ~ pH_mean, data = testing)
+anova(moda)  
+
+moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing)
+anova(moda) 
