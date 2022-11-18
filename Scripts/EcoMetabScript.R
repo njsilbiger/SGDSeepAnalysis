@@ -245,8 +245,8 @@ Cdata<-Cdata %>%
         mutate(
           # TA.diff = TA.mix- TA,
           # DIC.diff = DIC.mix - DIC,
-          TA.diff = TA_incom- TA.mix,
-          DIC.diff = DIC_incom - DIC.mix,
+          TA.diff = 2360- TA.mix, #TA_incom --- take average from offshore water
+          DIC.diff = 2000 - DIC.mix, # DIC_income
           #  NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
          # NN.diff =  NN.mix - NN_umolL,
          # PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
@@ -1124,6 +1124,14 @@ Cdata %>%
   geom_smooth(method = "lm")+
   facet_wrap(~Season)
 
+
+Cdata %>%
+  filter(NEP<60)%>%
+  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(Benthic.Cover_Categories) %>%
+  filter(Location == "Varari", Plate_Seep == "Plate") %>%
+  ggplot(aes(x = pH, y = NEC)) +
+  geom_point()
 
 modb<-lm(NEC~pH, data = Cdata %>%
            filter(NEP<60)%>%
