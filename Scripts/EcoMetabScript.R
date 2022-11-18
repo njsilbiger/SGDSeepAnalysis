@@ -255,7 +255,9 @@ Cdata<-Cdata %>%
          NEP = ((rho*0.575*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000 #mmol m-2 hr-1
          )
 
-
+Cdata %>%
+  filter(CowTagID %in% c("V12", "V15")) %>%
+  select(CowTagID, Tide, Time, Season, TA.mix, TA_incom, DIC_incom, DIC.mix, Salinity, NEC, NEP, residence_time_h)
 
 # Endmembers_HighSGD<-Cdata %>%
 #  # filter(Plate_Seep == "Seep") %>%
@@ -1215,3 +1217,12 @@ anova(moda)
 
 moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing)
 anova(moda) 
+
+
+
+Cdata %>%
+  filter(Plate_Seep == "Plate")%>%
+  ggplot(aes(x = DIC.mix, y = TA.mix, color = Tide_Time, shape = factor(Date)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season, scale = "free")
