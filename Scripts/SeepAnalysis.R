@@ -234,6 +234,7 @@ Allcabral<-CT_Cabral %>%
   left_join(PAR_Cabral)%>%
   left_join(DO_Cabral)%>%
   left_join(Rn_Cabral)%>%
+  left_join(waves)%>%
   relocate(Site, .before = date) %>% # move the site column
   mutate(PAR_calc = case_when(is.na(PAR) & Season == "Dry" ~ 16778.33+(0-16778.33)*exp(1)^(-exp( -13.29572)*Lux),
                               !is.na(PAR)~PAR,
