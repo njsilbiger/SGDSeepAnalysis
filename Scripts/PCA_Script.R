@@ -584,21 +584,37 @@ ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.png"), width = 16, 
 ### Make a PCA of the seeps colored by water depth ####
 #Varari
 V_pca_Seep<-Data %>%
-  filter(Location == "Varari", Plate_Seep=="Seep") %>%
+  filter(Location == "Varari", 
+         Plate_Seep=="Seep",
+         Season == "Dry") %>%
   select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
   #select(Salinity,pH,Phosphate_umolL:Lignin_Like ) %>%
-  drop_na()
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like)
+
+V_pca_Seep_wet<-Data %>%
+  filter(Location == "Varari", 
+         Plate_Seep=="Seep",
+         Season == "Wet") %>%
+  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
+  #select(Salinity,pH,Phosphate_umolL:Lignin_Like ) %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like)
 
 # Run the PCA
 pca_V_Seep <- prcomp(V_pca_Seep, scale. = TRUE, center = TRUE)
+pca_V_Seep_wet <- prcomp(V_pca_Seep_wet, scale. = TRUE, center = TRUE)
 
 # Extract the scores and loadings
 PC_scores_Seep <-as_tibble(pca_V_Seep$x[,1:2])
 PC_loadings_Seep<-as_tibble(pca_V_Seep$rotation) %>%
   bind_cols(labels = rownames(pca_V_Seep$rotation))
 
+PC_scores_Seep_wet <-as_tibble(pca_V_Seep_wet$x[,1:2])
+PC_loadings_Seep_wet<-as_tibble(pca_V_Seep_wet$rotation) %>%
+  bind_cols(labels = rownames(pca_V_Seep_wet$rotation))
+
 # calculate percent explained by each PC
 perc.explainedSeep<-round(100*pca_V_Seep$sdev/sum(pca_V_Seep$sdev),1)
+perc.explainedSeep_wet<-round(100*pca_V_Seep_wet$sdev/sum(pca_V_Seep_wet$sdev),1)
 
 PC_loadings_Seep<-as_tibble(pca_V_Seep$rotation) %>%
   bind_cols(labels = rownames(pca_V_Seep$rotation))%>%
@@ -624,35 +640,90 @@ PC_loadings_Seep<-as_tibble(pca_V_Seep$rotation) %>%
                         labels == "Silicate_umolL" ~ "Silicate",
                         labels == "Salinity" ~"Salinity"))
 
+PC_loadings_Seep_wet<-as_tibble(pca_V_Seep_wet$rotation) %>%
+  bind_cols(labels = rownames(pca_V_Seep_wet$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels == "pH" ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+  ),
+  nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        labels == "Lignin_Like" ~"Lignin Like",
+                        labels == "M_C" ~ "M:C",
+                        labels == "Tyrosine_Like" ~ "Tyrosine Like",
+                        labels == "Tryptophan_Like" ~ "Tryptophan Like",
+                        labels == "HIX"~"HIX",
+                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humic Like",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity"))
+
 # Put it with all the original data
 V_pca_Data_all_Seep<-Data %>%
-  filter(Location == "Varari", Plate_Seep=="Seep") %>%
-  drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like ) %>%
+  filter(Location == "Varari", Plate_Seep=="Seep", Season == "Dry") %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
   bind_cols(PC_scores_Seep)
+
+V_pca_Data_all_Seep_wet<-Data %>%
+  filter(Location == "Varari", Plate_Seep=="Seep", Season == "Wet") %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
+  bind_cols(PC_scores_Seep_wet)
 
 # scores plot
 p1seep<-PC_loadings_Seep%>%
 #  drop_na(Depth_seep)%>%
-  ggplot(aes(x = PC1, y = -PC2, label=nicenames, color = groupings))+
+  ggplot(aes(x = PC1, y = PC2, label=nicenames, color = groupings))+
   # geom_point(aes(size = -Depth_seep)) +
     coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
   #scale_shape_manual(values = c(22,16))+
 #  scale_color_gradient(low = "black", high = "yellow")+
 #  scale_colour_viridis(limits = c(-1.1,-0.4))+
-  geom_segment(data = PC_loadings_Seep, aes(x=0,y=0,xend=PC1*3,yend=-PC2*3),
+  geom_segment(data = PC_loadings_Seep, aes(x=0,y=0,xend=PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")))+
    # annotate("text", x = PC_loadings_Seep$PC1*3+0.1, y = PC_loadings_Seep$PC2*3+.1,
   #          label = PC_loadings_Seep$labels)+
-  geom_richtext(aes(x = PC1*3+0.1, y = -PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+  geom_richtext(aes(x = PC1*3+0.1, y = PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
   scale_size(limits = c(-1.1,-0.4))+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
   
 #  guides(color=guide_legend(), size = guide_legend())+
   labs(#color = "PAR", size = "Water Depth", shape = "Day or Night",
-       title = "Varari Seep",
+       #title = "Varari Seep",
        color = "",
        x = paste0("PC1 ","(",perc.explainedSeep[1],"%)"),
-       y = paste0("PC2 ","(",perc.explainedSeep[2],"%)"))+
+       y = paste0("PC2 ","(",perc.explainedSeep[2],"%)"),
+       title = "Varari (Dry)")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        axis.text = element_text(size = 16),
+        legend.text = element_markdown(size = 16),
+       # legend.key.size = unit(1, 'cm'),
+        #legend.position = c(0.75, 0.85),
+        legend.position = "none")
+
+p1seep_wet<-PC_loadings_Seep_wet%>%
+   ggplot(aes(x = -PC1, y = PC2, label=nicenames, color = groupings))+
+   coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
+   geom_segment(data = PC_loadings_Seep_wet, aes(x=0,y=0,xend=-PC1*3,yend=PC2*3),
+               arrow=arrow(length=unit(0.1,"cm")))+
+   geom_richtext(aes(x = -PC1*3+0.1, y = PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+  scale_size(limits = c(-1.1,-0.4))+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  labs(#color = "PAR", size = "Water Depth", shape = "Day or Night",
+    #title = "Varari Seep",
+    color = "",
+    x = paste0("PC1 ","(",perc.explainedSeep_wet[1],"%)"),
+    y = paste0("PC2 ","(",perc.explainedSeep_wet[2],"%)"),
+    title = "Varari (Wet)")+
   theme_bw()+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -663,23 +734,33 @@ p1seep<-PC_loadings_Seep%>%
         legend.key.size = unit(1, 'cm'),
         legend.position = c(0.75, 0.85))
 
-
 ## Cabral Seep
 C_pca_Seep<-Data %>%
-  filter(Location == "Cabral", Plate_Seep=="Seep") %>%
+  filter(Location == "Cabral", Plate_Seep=="Seep", Season == "Dry") %>%
   select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
-  drop_na()
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like)
+
+C_pca_Seep_wet<-Data %>%
+  filter(Location == "Cabral", Plate_Seep=="Seep", Season == "Wet") %>%
+  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like)
 
 # Run the PCA
 pca_C_Seep <- prcomp(C_pca_Seep, scale. = TRUE, center = TRUE)
+pca_C_Seep_wet <- prcomp(C_pca_Seep_wet, scale. = TRUE, center = TRUE)
 
 # Extract the scores and loadings
 PC_scores_SeepC <-as_tibble(pca_C_Seep$x[,1:2])
 PC_loadings_SeepC<-as_tibble(pca_C_Seep$rotation) %>%
   bind_cols(labels = rownames(pca_C_Seep$rotation))
 
+PC_scores_SeepC_wet <-as_tibble(pca_C_Seep_wet$x[,1:2])
+PC_loadings_SeepC_wet<-as_tibble(pca_C_Seep_wet$rotation) %>%
+  bind_cols(labels = rownames(pca_C_Seep_wet$rotation))
+
 # calculate percent explained by each PC
 perc.explainedSeepC<-round(100*pca_C_Seep$sdev/sum(pca_C_Seep$sdev),1)
+perc.explainedSeepC_wet<-round(100*pca_C_Seep_wet$sdev/sum(pca_C_Seep_wet$sdev),1)
 
 
 PC_loadings_SeepC<-as_tibble(pca_C_Seep$rotation) %>%
@@ -706,35 +787,80 @@ PC_loadings_SeepC<-as_tibble(pca_C_Seep$rotation) %>%
                         labels == "Silicate_umolL" ~ "Silicate",
                         labels == "Salinity" ~"Salinity"))
 
+PC_loadings_SeepC_wet<-as_tibble(pca_C_Seep_wet$rotation) %>%
+  bind_cols(labels = rownames(pca_C_Seep_wet$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels == "pH" ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like")~"fDOM"
+  ),
+  nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        labels == "Lignin_Like" ~"Lignin Like",
+                        labels == "M_C" ~ "M:C",
+                        labels == "Tyrosine_Like" ~ "Tyrosine Like",
+                        labels == "Tryptophan_Like" ~ "Tryptophan Like",
+                        labels == "HIX"~"HIX",
+                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humic Like",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity"))
+
 # Put it with all the original data
 C_pca_Data_all_Seep<-Data %>%
-  filter(Location == "Cabral", Plate_Seep=="Seep") %>%
+  filter(Location == "Cabral", Plate_Seep=="Seep", Season == "Dry") %>%
   drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like) %>%
   bind_cols(PC_scores_SeepC)
+
+C_pca_Data_all_Seep_wet<-Data %>%
+  filter(Location == "Cabral", Plate_Seep=="Seep", Season == "Wet") %>%
+  drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like) %>%
+  bind_cols(PC_scores_SeepC_wet)
 
 # scores plot
 p2seep<-PC_loadings_SeepC %>%
   ggplot(aes(x = PC1, y = PC2, label=nicenames, color = groupings))+
-  #  drop_na(Depth_seep)%>%
-  #ggplot(aes(x = PC1, y = PC2, color = log(PAR_calc_seep+1)))+
-#  geom_point(aes(size = -Depth_seep)) +
     coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
-#  scale_color_gradient(low = "black", high = "yellow")+
-  #scale_shape_manual(values = c(22,16))+
-#  scale_colour_viridis(limits = c(-.55,-.05))+
-#  scale_fill_viridis(trans = "reverse")+
   geom_segment(data = PC_loadings_SeepC, aes(x=0,y=0,xend=PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")))+
   geom_richtext(aes(x = PC1*3+0.1, y = PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
   scale_size(limits = c(-.55,-0.05)) +
   guides(color=guide_legend(), size = guide_legend())+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
-  
   labs(#color = "PAR", size = "Water Depth"
     color = "",
-    x = paste0("PC1 ","(",perc.explainedSeep[1],"%)"),
-    y = paste0("PC2 ","(",perc.explainedSeep[2],"%)"),
-       title = "Cabral Seep")+
+    x = paste0("PC1 ","(",perc.explainedSeepC[1],"%)"),
+    y = paste0("PC2 ","(",perc.explainedSeepC[2],"%)"),
+       title = "Cabral Seep (Dry)")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.text = element_markdown(size = 16),
+        legend.key.size = unit(1, 'cm'),
+        axis.title = element_text(size = 18, hjust = 0.5),
+        plot.title = element_text(hjust = 0.5, size = 18),
+        axis.text = element_text(size = 16),
+        legend.position = "none")
+
+p2seep_wet<-PC_loadings_SeepC_wet %>%
+  ggplot(aes(x = -PC1, y = PC2, label=nicenames, color = groupings))+
+  coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
+  geom_segment(data = PC_loadings_SeepC_wet, aes(x=0,y=0,xend=-PC1*3,yend=PC2*3),
+               arrow=arrow(length=unit(0.1,"cm")))+
+  geom_richtext(aes(x = -PC1*3+0.1, y = PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+  scale_size(limits = c(-.55,-0.05)) +
+  guides(color=guide_legend(), size = guide_legend())+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  labs(#color = "PAR", size = "Water Depth"
+    color = "",
+    x = paste0("PC1 ","(",perc.explainedSeepC_wet[1],"%)"),
+    y = paste0("PC2 ","(",perc.explainedSeepC_wet[2],"%)"),
+    title = "Cabral Seep (Wet)")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -746,12 +872,12 @@ p2seep<-PC_loadings_SeepC %>%
         legend.position = "none")
 
 # save the plots
-SeepPCA<-p1seep+p2seep+ 
+SeepPCA<-(p1seep+p1seep_wet)/(p2seep+p2seep_wet)+ 
   patchwork::plot_annotation(#"Seep", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5, 
                                                                      margin = margin(t = 10, b = 20, unit = "pt"))))
 
-ggsave(plot = SeepPCA, filename = here("Output","SeepPCA.png"), width = 16, height = 8)
+ggsave(plot = SeepPCA, filename = here("Output","SeepPCA.png"), width = 16, height = 16)
 
 
 
