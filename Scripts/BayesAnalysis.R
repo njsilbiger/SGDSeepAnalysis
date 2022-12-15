@@ -21,7 +21,7 @@ library(seacarb)
 library(ggtext)
 library(lme4)
 library(lmerTest)
-library(broom)
+library(broom) 
 
 
 ##### Load data ###########
