@@ -15,7 +15,7 @@ library(ggtext)
 
 ## Read in the different datasets
 
-## Tide predictions------------
+## Tide predictions------------ https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=1732417
 # August
 tideAug<-read_tsv(here("Data","IslandData","TidePredictions.txt"), skip = 13) %>%
   mutate(date = ymd_hms(paste(Date,Time)),
