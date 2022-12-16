@@ -16,6 +16,7 @@ library(viridis)
 library(janitor)
 library(ggh4x)
 library(ggtext)
+library(patchwork)
 
 
 ### read in all the data
@@ -79,3 +80,64 @@ waves<-read_csv(here("Data","IslandData","WestSideADCPMCR.csv")) %>%
   filter(datetime > ymd("2021-08-03")) %>%
   mutate(date = datetime)%>%
   select(!datetime)
+
+# bring everything together
+## missing data in join.. check the june data
+
+AllVarari<-CT_Varari %>%
+  full_join(WL_Varari)%>%
+  full_join(pH_Varari) %>%
+  full_join(LUX_Varari) %>%
+  full_join(PAR_Varari)%>%
+  full_join(DO_Varari)%>%
+  full_join(waves)%>% # add in wave height data from LTER 6 offshore
+  relocate(Site, .before = date)  # move the site column
+  # mutate(PAR_calc = case_when(is.na(PAR) & Season == "Dry" ~ 16778.33+(0-16778.33)*exp(1)^(-exp( -13.29572)*Lux), # calculate PAR when it is missing
+  #                             !is.na(PAR)~PAR,
+  #                             is.na(PAR) & Season =="Wet" ~ 1555.751648 +(0-1555.751648 )*exp(1)^(-exp( -10.777624)*Lux)))  %>%
+ # select(-Lux,-PAR) %>%  # remove Lux and original PAR
+#  mutate(PAR_calc = ifelse(PAR_calc<0,0,PAR_calc)) # if PAR is negative make it 0
+
+
+## make some plots
+AllVarari %>%
+  ggplot(aes(x = date, y = Salinity_psu))+
+  geom_line()
+
+AllVarari %>%
+ # drop_na(Significant_wave_height, Depth) %>%
+  ggplot(aes(x = Depth, y = Salinity_psu, color = log(Lux+1)))+
+  geom_point()
+
+
+AllVarari %>%
+  filter(Depth < 1.5) %>%
+  # drop_na(Significant_wave_height, Depth) %>%
+  ggplot(aes(x = Depth, y = Salinity_psu, color = log(Lux+1)))+
+  geom_point()
+
+
+AllVarari %>%
+   drop_na(pH, Depth) %>%
+  ggplot(aes(x = Depth, y = pH))+
+  geom_point()
+
+
+AllVarari %>%
+  drop_na(pH, Salinity_psu) %>%
+  ggplot(aes(x = Salinity_psu, y = TempInSitu))+
+  geom_point()
+
+### Need to line up March waveheight data
+
+AllVarari %>% ## values are not lining up
+  filter(date > ymd_hms("2022-06-01 00:00:00")) %>%
+  pivot_longer(cols = TempInSitu:Significant_wave_height, names_to = "Params", values_to = "Values") %>%
+  ggplot(aes(x = date, y = Values))+
+  geom_line()+
+  #  geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
+  facet_wrap(~Params, scales = "free", ncol = 2)+
+
+  theme_bw() +
+  labs(title = "Varari Sled")
+
