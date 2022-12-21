@@ -44,7 +44,13 @@ SeepAll<-bind_rows(VarariSeep, CabralSeep)
 # Bind with the chem data
 Data<-Data %>%
   bind_rows(Data_march)%>%
-  left_join(SeepAll) 
+  left_join(SeepAll) %>%
+  mutate(NewDay_Night = case_when(
+    Tide == "Low" & Day_Night == "Day" ~ "Night", # change day and night deliniations 
+    Tide == "Low" & Day_Night == "Night" ~ "Day",
+    Tide == "High" & Day_Night == "Day" ~ "Day",
+    Tide == "High" & Day_Night == "Night" ~ "Night"
+  )) 
 
 
 # # Load water level data 
