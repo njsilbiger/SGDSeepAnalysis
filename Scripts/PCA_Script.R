@@ -30,6 +30,8 @@ turbdata<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-
 
 turbdata_march<- read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/Nutrients/Turb_NC.csv") %>% mutate(Season = "Wet")
 
+turb_all<-bind_rows(turbdata, turbdata_march)
+
 # Load the Seep Data
 VarariSeep<-read_csv(here("Data","Varari","AllVarariSeepData.csv")) %>%
   rename_with(.cols = TempInSitu:PAR_calc,function(x){paste0(x,"_seep")}) %>% # rename columns to say seep at the end
@@ -1341,3 +1343,6 @@ Data %>%
   geom_smooth(method = "lm")+
   facet_wrap(~Location*Season, scales = "free")
 ggsave(here("Output","SivsNN.png"), width = 5, height = 5)
+
+### Only keep certain dataframes for eco metab script
+rm(list= ls()[!(ls() %in% c("Data", "Datalog", "remove_varari","remove_cabral","remove_vararilog","remove_cabrallog","turb_all"))])

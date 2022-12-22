@@ -18,51 +18,68 @@ library(lmerTest)
 library(broom)
 library(oce)
 
-# load the 24 hour chemistry data #####################
-Data_Dry<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv") %>%
-  mutate(Season = "Dry") %>%
-  mutate(Date = mdy(Date))
-turbdata<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Nutrients/Turb_NC.csv") %>%
-  mutate(Season = "Dry")
-# wet season
-Data_wet<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_POcorrect.csv") %>%
-  mutate(Season = "Wet") %>%
-  rename(Temperature = TempInSitu,
-         Time = SamplingTime) %>%
-  mutate(DateTime = ymd_hms(paste(as.character(Date), as.character(Time)))) %>% # make a datetime column like the dry season
-  left_join(read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/Sandwich_Locations_Final.csv"))
 
-turb_wet<- read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/Nutrients/Turb_NC.csv") %>%
-  mutate(Season = "Wet")
+
+# # load the 24 hour chemistry data #####################
+# Data_Dry<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv") %>%
+#   mutate(Season = "Dry") %>%
+#   mutate(Date = mdy(Date))
+# 
+# # wet season
+# Data_wet<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/CarbonateChemistry/pHProbe_Data_calculated_POcorrect.csv") %>%
+#   mutate(Season = "Wet") %>%
+#   rename(Temperature = TempInSitu,
+#          Time = SamplingTime) %>%
+#   mutate(DateTime = ymd_hms(paste(as.character(Date), as.character(Time)))) %>% # make a datetime column like the dry season
+#   left_join(read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/Sandwich_Locations_Final.csv"))
+# 
+# ## Remove the one crazy Ammonium outlier
+# remove2<-Data_Dry %>% filter(CowTagID=="V2", Tide =="Low", Day_Night=="Day", Date == ymd("2021-08-08"))
+# removelow<- Data_Dry %>% # remove the not real low tide
+#   filter(Date == ymd("2021-08-06") & Tide == "Low" & Plate_Seep == "Plate")
+# turbdata<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Nutrients/Turb_NC.csv") %>%
+#   mutate(Season = "Dry")
+# 
+# turb_wet<- read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/Nutrients/Turb_NC.csv") %>%
+#   mutate(Season = "Wet")
+# 
+# turb_all<-bind_rows(turbdata, turb_wet)
+# 
+##---------------------------------------------
+
+# read in the data from the pca script so that all data cleaning is the same
+source(here("Scripts","PCA_Script.R"))
+
 
 ## load the distance to seep and depth data to calculate residence times
 distance<-read_csv(here("Data","distance_depth.csv")) %>%
   mutate(Depth_m = adj_CT_depth_cm/100)%>%
-  select(CowTagID, dist_to_seep_m, Depth_m)
+  #select(CowTagID, dist_to_seep_m, Depth_m) 
+  select(CowTagID, dist_to_crest,Depth_m)
+
 
 ## load the current speed data
-currentspeed<-read_csv(here("Data","currentspeed.csv"))
+currentspeed<-read_csv(here("Data","currentspeed.csv")) %>%
+  mutate(DateTime = ymd_hms(DateTime))
 
 #### Visualize the TA data ####
 
-## Remove the one crazy Ammonium outlier
-remove2<-Data_Dry %>% filter(CowTagID=="V2", Tide =="Low", Day_Night=="Day", Date == ymd("2021-08-08"))
-removelow<- Data_Dry %>% # remove the not real low tide
-  filter(Date == ymd("2021-08-06") & Tide == "Low" & Plate_Seep == "Plate")
-
-
 # bring both seasons together and add in other important metrics for calculating metabolism
-Data <- Data_Dry %>%
-  bind_rows(Data_wet) %>%
+Data <- Data %>%
+  #Data_Dry %>%
+  #bind_rows(Data_wet) %>%
   left_join(distance) %>% # add in the distance and depth data
   left_join(currentspeed)%>%
-  select(!c(SeepCode:LoggerID,Top_Plate_ID:Jamie_Plate_ID)) %>% # remove unnecessary columns
-  mutate(residence_time_h = (1/CurrentSpeed_m_s)*dist_to_seep_m*(1/60),  # calculate residence time of water moving from seep to cowtagID in hours
+ # select(!c(SeepCode:LoggerID,Top_Plate_ID:Jamie_Plate_ID)) %>% # remove unnecessary columns
+  select(!c(Top_Plate_ID:Jamie_Plate_ID)) %>%
+  mutate(residence_time_h = (1/CurrentSpeed_m_s)*dist_to_crest*(1/60),
+        # residence_time_h = (1/CurrentSpeed_m_s)*dist_to_seep_m*(1/60),  # calculate residence time of water moving from seep to cowtagID in hours
          rho = swRho(salinity = Salinity, temperature = Temperature, pressure = 0, eos="unesco")) # calculate seawater density in kg/m3
 
 # make a set of density plots
 Data %>%
-  anti_join(remove2)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep=="Plate") %>%
   mutate(Tide_Time = paste(Tide, Day_Night))%>%
   ggplot(aes(x = TA, y = Tide_Time, fill = Season)) +
@@ -70,7 +87,8 @@ Data %>%
     facet_wrap(~Location)
 
 Data %>%
-  anti_join(remove2)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep=="Plate") %>%
   mutate(Tide_Time = paste(Tide, Day_Night))%>%
   ggplot(aes(x = Salinity, y = TA, color = Tide_Time))+
@@ -158,15 +176,15 @@ Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to
 
 # some plots of the relationship betwen TA, DIC, NN, and PO versus salinity at the seep
 Cdata %>%
-  filter(Plate_Seep == "Seep") %>% 
+  filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% 
   ggplot(aes(x = Salinity, y = TA, color = Season))+
   geom_point(aes(color = Season))+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scale = "free")
 
 Cdata %>%
-  filter(Plate_Seep == "Seep") %>% 
-  ggplot(aes(x = Salinity, y = DIC, color = Season))+
+  filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% 
+  ggplot(aes(x = Salinity, y = pH, color = Season))+
   geom_smooth(method = "lm")+
   geom_point()+facet_wrap(~Location, scale = "free")
 
@@ -236,8 +254,18 @@ incoming<-Cdata %>%
   select(Location,Season, Date, Tide, Day_Night, TA_incom = TA.mix,DIC_incom = DIC.mix)
 
 
+## calculate average TA and DIC from offshore water/ VRC and CRS
+crestwater<-Cdata %>%
+  filter(Plate_Seep == "Offshore") %>%
+  group_by(Location) %>%
+           #, Day_Night, Tide) %>%
+  summarise(TA.offshore = mean(TA, na.rm = TRUE),
+            DIC.offshore = mean(DIC, na.rm = TRUE)) %>%
+  drop_na()
+
 Cdata<-Cdata %>%
   left_join(incoming) %>%
+  left_join(crestwater)%>%
          #   ifelse(Location  == "Varari",Salinity*Vco[2]+Vco[1],Salinity*Cco[2]+Cco[1]), # mixing line TA
          # TA.diff = TA.mix-TA, # observed - predicted to see how biology changes TA above what is expected by mixing
          # DIC.mix = ifelse(Location  == "Varari",Salinity*VcoDIC[2]+VcoDIC[1],Salinity*CcoDIC[2]+CcoDIC[1]),
@@ -245,14 +273,18 @@ Cdata<-Cdata %>%
         mutate(
           # TA.diff = TA.mix- TA,
           # DIC.diff = DIC.mix - DIC,
-          TA.diff = 2360- TA.mix, #TA_incom --- take average from offshore water
-          DIC.diff = 2000 - DIC.mix, # DIC_income
+          TA.diff = TA.offshore - TA.mix, #TA_incom --- take average from offshore water 2360
+          DIC.diff = DIC.offshore - DIC.mix, # DIC_income 2000
           #  NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
          # NN.diff =  NN.mix - NN_umolL,
          # PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
          # PO.diff =  PO.mix -Phosphate_umolL,
-         NEC = ((rho*0.575*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
-         NEP = ((rho*0.575*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000 #mmol m-2 hr-1
+         NEC = ((rho*Depth_m*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
+         NEP = ((rho*Depth_m*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000, #mmol m-2 hr-1,
+         NEC.proxy = TA.diff/2,
+         NEP.proxy = DIC.diff - (TA.diff/2)
+        # NEC = ((rho*0.575*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
+        # NEP = ((rho*0.575*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000 #mmol m-2 hr-1
          )
 
 Cdata %>%
@@ -301,7 +333,9 @@ Cdata %>%
 
 # Make some plots
 Cdata %>%
-  anti_join(removelow)%>%
+  #anti_join(removelow)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
   ggplot(aes(x = log(Silicate_umolL), y = TA.diff, color = Tide_Time))+
   geom_smooth(method = "lm")+
@@ -310,16 +344,18 @@ Cdata %>%
 
 Cdata %>%
   filter(Plate_Seep == "Plate") %>%
-  anti_join(removelow)%>%
-  ggplot(aes(x = log(Silicate_umolL), y = DIC.diff, color = Tide_Time))+
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  ggplot(aes(x = log(Silicate_umolL), y = NEP.proxy, color = Tide_Time))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location*Season, scales = "free")
 
 Cdata %>%
-  anti_join(removelow)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = NEP.proxy, y = NEC.proxy, color = Tide, shape = Day_Night))+
   geom_point()+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
@@ -327,8 +363,9 @@ Cdata %>%
   facet_wrap(~Location*Season, scales = "free")
 
 Cdata %>%
-  anti_join(removelow)%>%
-  filter(Plate_Seep == "Plate", Location == "Varari") %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
   ggplot(aes(x = NEP, y = NEC, color = Tide, shape = Day_Night))+
   geom_point()+
   geom_hline(yintercept = 0)+
@@ -337,9 +374,10 @@ Cdata %>%
   facet_wrap(~Location*Season, scales = "free")
 
 Cdata %>%
-  anti_join(removelow)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide,
+  ggplot(aes(x = DIC.diff-(TA.diff/2), y = TA.diff/2, color = Tide,
              shape = Day_Night))+
   geom_point()+
   geom_hline(yintercept = 0)+
@@ -348,31 +386,32 @@ Cdata %>%
   facet_wrap(~Location*Season, scales = "free")
 
 # make a model to see if the slopes are different
-TADICdiffmod<-lm(TA.diff/2~DIC.diff*Tide , data  = Cdata %>%
-                   anti_join(removelow)%>% filter(Location  == "Varari", Plate_Seep == "Plate", Season == "Dry"))
+TADICdiffmod<-lm(TA.diff/2~DIC.diff*Tide , data  = Cdata %>% anti_join(remove_varari)%>%
+                   anti_join(remove_cabral)%>% filter(Location  == "Varari", Plate_Seep == "Plate", Season == "Dry"))
 anova(TADICdiffmod)
 summary(TADICdiffmod)
 
 #Easy coefficients
-TADICdiffcoef<-lm(TA.diff/2~Tide/DIC.diff -1, data  = Cdata %>%
-                   anti_join(removelow)%>% filter(Location  == "Varari", Plate_Seep == "Plate", Season == "Dry"))
+TADICdiffcoef<-lm(TA.diff/2~Tide/DIC.diff -1, data  = Cdata %>% anti_join(remove_varari)%>%
+                    anti_join(remove_cabral)%>% filter(Location  == "Varari", Plate_Seep == "Plate", Season == "Dry"))
 coef(TADICdiffcoef)
 
 # Have a random effect for day and night to allow the intercept to change 
-TADICdiffmod_rand<-lmer(TA.diff/2~DIC.diff*Tide*Season + (1|Day_Night) , data  = Cdata %>%
-                     anti_join(removelow)%>% filter(Location  == "Varari", Plate_Seep == "Plate"))
+TADICdiffmod_rand<-lmer(TA.diff/2~DIC.diff*Tide*Season + (1|Day_Night) , data  = Cdata %>% anti_join(remove_varari)%>%
+                          anti_join(remove_cabral)%>% filter(Location  == "Varari", Plate_Seep == "Plate"))
 
 anova(TADICdiffmod_rand)
 summary(TADICdiffmod_rand)
 
-TADICdiffcoef_rand<-lmer(TA.diff/2~Season/Tide/DIC.diff + (1|Day_Night) , data  = Cdata %>%
-                     anti_join(removelow)%>% filter(Location  == "Varari", Plate_Seep == "Plate"))
+TADICdiffcoef_rand<-lmer(TA.diff/2~Season/Tide/DIC.diff + (1|Day_Night) , data  = Cdata %>% anti_join(remove_varari)%>%
+                           anti_join(remove_cabral)%>% filter(Location  == "Varari", Plate_Seep == "Plate"))
 coef(TADICdiffcoef_rand)
 
 
 Cdata %>%
   filter(Plate_Seep == "Plate") %>%
-  anti_join(removelow)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   ggplot(aes(x = DIC, y = TA, color = Tide_Time))+
   geom_point()+
   geom_smooth(method = "lm")+
@@ -380,7 +419,8 @@ Cdata %>%
   theme_bw()
 
 Cdata %>%
-  anti_join(removelow)%>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
   drop_na(NEC)%>%
   ggplot(aes(x = pH, y = NEC))+
@@ -532,14 +572,10 @@ Cdata %>%
 #  Temperature vs delta TA
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = Temperature, y = TA.diff, color = Season))+
+  ggplot(aes(x = Temperature, y = NEC.proxy, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scales = "free")
-
-
-
-
 
 ## What is the distribution of average silicate at the plates
 
@@ -943,7 +979,7 @@ ggplot(aes(x = SGDpres, y = NN_umolL, fill = SGDpres))+
 models<-Cdata %>%
   filter(Plate_Seep == "Plate",
          Location == "Varari") %>%
-  left_join(bind_rows(turbdata, turb_wet)) %>% # join in the turb data
+  left_join(turb_all) %>% # join in the turb data
   nest(data = -c(Location,CowTagID, Season)) %>%
   mutate(fit = map(data, ~lm(NEC~NEP, data = .)),
         # fit = map(data, ~lm(TA.diff/2~DIC.diff, data = .)),
@@ -970,7 +1006,7 @@ models<-Cdata %>%
 models_both<-Cdata %>%
   filter(Plate_Seep == "Plate",
          Location == "Varari") %>%
-  left_join(bind_rows(turbdata, turb_wet)) %>% # join in the turb data
+  left_join(turb_all) %>% # join in the turb data
   nest(data = -c(Location,CowTagID)) %>%
   mutate(fit = map(data, ~lm(NEC~NEP, data = .)),
          # fit = map(data, ~lm(TA.diff/2~DIC.diff, data = .)),
@@ -1017,6 +1053,16 @@ models %>%
 
 models %>%
   ggplot(aes(x = Phosphate_umolL, y = estimate))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_label(aes(label = CowTagID))+
+  facet_wrap(~Location*Season, scales = "free")
+
+mod_Phosphate_umolL<-lm(estimate ~ Phosphate_umolL, data = models_both)
+anova(mod_Phosphate_umolL)
+
+models %>%
+  ggplot(aes(x = (NN_umolL)/Phosphate_umolL, y = estimate))+
   geom_point()+
   geom_smooth(method = "lm")+
   geom_label(aes(label = CowTagID))+
@@ -1087,27 +1133,18 @@ models2_both %>%
 
 
 Cdata %>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
+  filter(NEP<60)%>%
+  left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
-  filter(Location == "Varari", Plate_Seep == "Plate", Season == "Dry") %>%
-  ggplot(aes(y = log((TotalAlgae+1)/(TotalCalc+1)), x = del15N))+
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = log(NN_umolL), y = NEP,color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
-  facet_wrap(~Location)
+  facet_wrap(~Location,scales = "free")
 
-Cdata %>%
-  filter(NEP<60)%>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
-  left_join(Benthic.Cover_Categories) %>%
-  filter(Location == "Varari", Plate_Seep == "Plate") %>%
-  ggplot(aes(x = log(NN_umolL), y = NEP))+
-  geom_point(aes(color = Season))+
-  geom_smooth(method = "lm")+
-  facet_wrap(~Location)
-
-moda<-lm(NEP~log(NN_umolL), data = Cdata %>%
+moda<-lm(NEP~log(NN_umolL)*Season, data = Cdata %>%
            filter(NEP<60)%>%
-           left_join(bind_rows(turbdata, turb_wet)) %>%
+           left_join(turb_all) %>%
            left_join(Benthic.Cover_Categories) %>%
            filter(Location == "Varari", Plate_Seep == "Plate"))
 
@@ -1116,36 +1153,35 @@ anova(moda)
 
 Cdata %>%
   filter(NEP<60)%>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
-  filter(Location == "Varari", Plate_Seep == "Plate") %>%
+  filter(Plate_Seep == "Plate") %>%
   ggplot(aes(x = Salinity, y = pH, shape = Tide_Time))+
   geom_point(aes(color = Season))+
   geom_smooth(method = "lm")+
-  facet_wrap(~Season)
+  facet_wrap(~Season*Location)
 
 
 Cdata %>%
   filter(NEP<60)%>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
-  filter(Location == "Varari", Plate_Seep == "Plate") %>%
-  ggplot(aes(x = pH, y = NEC)) +
-  geom_point()
+  filter( Plate_Seep == "Plate") %>%
+  ggplot(aes(x = pH, y = NEC, color = Season)) +
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location,scales = "free")
 
-modb<-lm(NEC~pH, data = Cdata %>%
+
+modb<-lm(NEC~pH*Season, data = Cdata %>%
            filter(NEP<60)%>%
-           left_join(bind_rows(turbdata, turb_wet)) %>%
-           left_join(Benthic.Cover_Categories) %>%
            filter(Location == "Varari", Plate_Seep == "Plate"))
 
 anova(modb)
 
-
-
 ## Calculate summaries
 AllDataSummary<- Cdata %>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
   group_by(Location, Plate_Seep, CowTagID)%>%
   summarise_at(vars(Salinity:Ammonia_umolL, pCO2), .funs =  function(x)(max(x, na.rm = TRUE) - min(x,na.rm = TRUE))) %>%
@@ -1154,15 +1190,18 @@ AllDataSummary<- Cdata %>%
 
 
 AllDataSummary %>%
-  filter(Location  == "Varari", Plate_Seep == "Plate",
-         logratio > 0) %>% # one outlier
+  filter(Plate_Seep == "Plate",
+         logratio > 0
+        ) %>% # one outlier
   ggplot(aes(x = logratio, y = pH))+
   geom_point()+
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
 
 modpHratio<-lm(pH~logratio, data = 
                  AllDataSummary %>%
-                 filter(Location  == "Varari", Plate_Seep == "Plate", logratio > 0)) 
+                 filter(Location  == "Varari", Plate_Seep == "Plate",
+                        logratio > 0)) 
 #removed the one outlier 
 anova(modpHratio)
 
@@ -1172,7 +1211,7 @@ Cdata %>%
   droplevels()%>%
 ggplot(aes(x = Tide, y = NEP, color = Day_Night))+
   geom_boxplot()+
-  facet_wrap(~Location*Season)
+  facet_wrap(~Location*Season, scales = "free")
 
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
@@ -1189,7 +1228,7 @@ CoV <- function(x){
 
 testing<-Cdata %>%
   filter(Plate_Seep == "Plate", NEC < 5) %>%
-  left_join(bind_rows(turbdata, turb_wet)) %>%
+  left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
   group_by(Location,  CowTagID, Season)%>%
   summarise_at(vars(Salinity:Ammonia_umolL, pCO2, NEC, NEP), .funs =  c("mean" = mean, "CoV" = CoV, "sum" = sum)) %>%
@@ -1197,40 +1236,38 @@ testing<-Cdata %>%
   drop_na()
   
 testing %>%  
+  ggplot(aes(x = pH_mean, y = NEC_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
 ggplot(aes(x = log(Silicate_umolL_CoV), y = NEC_mean, color = Season))+
    geom_point()+
   geom_smooth(method = "lm")+
-   facet_wrap(~Season, scales = "free")
+   facet_wrap(~Season*Location, scales = "free")
 
-moda<-lm(NEC_mean ~ pH_mean*Season, data = testing)
+moda<-lm(NEC_mean ~ pH_mean*Season, data = testing %>% filter(Location == "Varari"))
 anova(moda)  
 
-moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing)
+moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda)  
 
 testing %>%  
   ggplot(aes(x = log(NN_umolL_mean), y = NEP_sum, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
-  facet_wrap(~Season, scales = "free")
+  facet_wrap(~Season*Location, scales = "free")
 
 testing %>%  
-  ggplot(aes(x = log(NN_umolL_mean), y = NEC_sum, color = Season))+
+  ggplot(aes(x = log(NN_umolL_mean), y = NEC_mean, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
-  facet_wrap(~Season, scales = "free")
+  facet_wrap(~Season*Location, scales = "free")
 
-moda<-lm(NEC_mean ~ pH_mean, data = testing)
+moda<-lm(NEC_mean ~ pH_mean*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda)  
 
-moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing)
+moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda) 
 
-
-
-Cdata %>%
-  filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = DIC.mix, y = TA.mix, color = Tide_Time, shape = factor(Date)))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(~Location*Season, scale = "free")
