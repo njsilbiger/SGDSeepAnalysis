@@ -1270,4 +1270,40 @@ anova(moda)
 
 moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda) 
+ 
+### look at fDOM
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate",
+         VisibleHumidic_Like <0.05) %>%
+  ggplot(aes(y = MarineHumic_Like, x = NEP.proxy, color = Tide))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(x = "Net community production")+
+  facet_wrap(~Day_Night*Location, scales = "free")
 
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate",
+         VisibleHumidic_Like <0.05) %>%
+  ggplot(aes(y = MarineHumic_Like, x =Silicate_umolL, color = Day_Night))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(y = "Humics")+
+  facet_wrap(~Location*Season, scales = "free")
+
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  select(Location, Tide, Silicate_umolL, TA, pH, NN_umolL, Phosphate_umolL, Ammonia_umolL) %>%
+  pivot_longer(Silicate_umolL:Ammonia_umolL) %>%
+  ggplot(aes(x = value, fill = Location)) +
+  geom_density(alpha = 0.5)+
+  scale_x_continuous(trans = "log10")+
+  theme_bw() +
+  facet_wrap(~name, scale = "free")
+
+ggsave(here("Output", "desnityplotssite.png"), width = 8, height = 4)
