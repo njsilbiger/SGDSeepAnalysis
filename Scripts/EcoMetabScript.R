@@ -1228,12 +1228,11 @@ CoV <- function(x){
 
 testing<-Cdata %>%
   filter(Plate_Seep == "Plate", NEC < 5) %>%
-  left_join(turb_all) %>%
-  left_join(Benthic.Cover_Categories) %>%
   group_by(Location,  CowTagID, Season)%>%
-  summarise_at(vars(Salinity:Ammonia_umolL, pCO2, NEC, NEP), .funs =  c("mean" = mean, "CoV" = CoV, "sum" = sum)) %>%
+  summarise_at(vars(Salinity:Ammonia_umolL, pCO2, NEC, NEP,NEC.proxy, NEP.proxy, MarineHumic_Like:Lignin_Like), .funs =  c("mean" = mean, "CoV" = CoV, "sum" = sum)) %>%
   droplevels()%>%
-  drop_na()
+  left_join(turb_all) %>%
+  left_join(Benthic.Cover_Categories)
   
 testing %>%  
   ggplot(aes(x = pH_mean, y = NEC_mean, color = Season))+
@@ -1246,6 +1245,36 @@ ggplot(aes(x = log(Silicate_umolL_CoV), y = NEC_mean, color = Season))+
    geom_point()+
   geom_smooth(method = "lm")+
    facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
+  ggplot(aes(x = log(Silicate_umolL_mean), y = MarineHumic_Like_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
+  ggplot(aes(y = TotalCoral, x = Silicate_umolL_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
+  ggplot(aes(x = TotalCoral, y = NEC_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
+  ggplot(aes(x = Silicate_umolL_mean, y = NEC_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
+
+testing %>%  
+  ggplot(aes(y = NN_umolL_mean, x = Silicate_umolL_mean, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
 
 moda<-lm(NEC_mean ~ pH_mean*Season, data = testing %>% filter(Location == "Varari"))
 anova(moda)  
@@ -1307,3 +1336,44 @@ Cdata %>%
   facet_wrap(~name, scale = "free")
 
 ggsave(here("Output", "desnityplotssite.png"), width = 8, height = 4)
+
+Cdata %>% anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = log(Silicate_umolL), y = Tryptophan_Like, color = Day_Night))+ 
+  geom_point() +
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season, scales = "free")
+
+Cdata %>% anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = log(Silicate_umolL), y = VisibleHumidic_Like+ MarineHumic_Like, color = Day_Night))+ 
+  geom_point() +
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season, scales = "free")
+
+Cdata %>% anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = log(Silicate_umolL), y = Tryptophan_Like+Tyrosine_Like, color = Day_Night))+ 
+  geom_point() +
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season, scales = "free")
+
+Cdata %>% anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Seep") %>%
+  ggplot(aes(x = Silicate_umolL, y = MarineHumic_Like+VisibleHumidic_Like, color = Season))+ 
+  geom_point() +
+  scale_x_continuous(trans = "log10")+
+  scale_y_continuous(trans = "log10")+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location)
+
+testing %>%  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  ggplot(aes(x = TotalCoral, y = VisibleHumidic_Like_mean, color = log(NN_umolL_mean)))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Season*Location, scales = "free")
