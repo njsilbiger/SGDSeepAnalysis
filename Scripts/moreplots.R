@@ -169,8 +169,7 @@ Cdata %>%
 Cdata %>%
   anti_join(removelow)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(y = VisibleHumidic_Like, x =Silicate_umolL, color = NewDay_Night))+
+  ggplot(aes (x =log(Silicate_umolL), y = VisibleHumidic_Like, color = NewDay_Night))+
   geom_point()+
   geom_smooth(method = "lm")+
-  labs(y = "Net community production")+
   facet_wrap(~Location*Season, scales = "free")
