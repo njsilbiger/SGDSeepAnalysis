@@ -360,7 +360,7 @@ Cdata %>%
   anti_join(remove_varari)%>%
   anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = log(Silicate_umolL), y = TA.diff, color = Tide_Time))+
+  ggplot(aes(x = log(Silicate_umolL), y = NEC.proxy, color = Tide_Time))+
   geom_smooth(method = "lm")+
   geom_point()+
   facet_wrap(~Location*Season, scales = "free")
@@ -1467,7 +1467,7 @@ ModelData<-Cdata %>%
  anti_join(remove_varari)%>%
   anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
-  select(Location, Tide, Day_Night, Season, pH, Salinity, Silicate_umolL, NEP, NEP.proxy, NEC, NEC.proxy) %>%
+  select(Location, Tide, Day_Night, TimeBlock, Season, pH, Salinity, Silicate_umolL, NEP, NEP.proxy, NEC, NEC.proxy) %>%
   mutate(Silicate_umolL = log(Silicate_umolL)) %>% 
   mutate_at(vars("pH":"NEC.proxy"),  function(x) scale(x, center = TRUE)[,1]) 
 
@@ -1706,7 +1706,7 @@ v4<-summary(margins(mod.NEP, at = list(Season = c("Dry","Wet"))))[5:6,] %>%
     y = " ", x = "")+
   theme_bw()
 
-mod.NEPc<-lm(pH~(log(Silicate_umolL)+NEP.proxy)*Season, data = ModelData %>%
+mod.NEPc<-lm(pH~(Silicate_umolL+NEP.proxy)*Season, data = ModelData %>%
                filter(Location == "Cabral"))
 anova(mod.NEPc)
 

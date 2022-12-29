@@ -541,7 +541,7 @@ C_pca_Data_all<-Data %>%
   select(!Jamie_Plate_ID)%>% # Jamie's plates are all NA here
   filter(Location == "Cabral", Plate_Seep=="Plate",
          Season == "Dry") %>%
-  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, TA) %>%
   bind_cols(PC_scoresC)  
 
 C_pca_Data_all_wet<-Data %>%
@@ -549,7 +549,7 @@ C_pca_Data_all_wet<-Data %>%
   select(!Jamie_Plate_ID)%>% # Jamie's plates are all NA here
   filter(Location == "Cabral", Plate_Seep=="Plate",
          Season == "Wet") %>%
-  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like) %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like,TA) %>%
   bind_cols(PC_scoresC_wet)  
 
 # scores plot
@@ -1013,11 +1013,11 @@ C_pca_Data_all_Seep_wet<-Data %>%
 
 # scores plot
 p2seep<-PC_loadings_SeepC %>%
-  ggplot(aes(x = -PC1, y = -PC2, label=nicenames, color = groupings))+
+  ggplot(aes(x = -PC1, y = PC2, label=nicenames, color = groupings))+
     coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
-  geom_segment(data = PC_loadings_SeepC, aes(x=0,y=0,xend=-PC1*3,yend=-PC2*3),
+  geom_segment(data = PC_loadings_SeepC, aes(x=0,y=0,xend=-PC1*3,yend=PC2*3),
                arrow=arrow(length=unit(0.1,"cm")))+
-  geom_richtext(aes(x = -PC1*3+0.1, y = -PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+  geom_richtext(aes(x = -PC1*3+0.1, y = PC2*3+0.1), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
   scale_size(limits = c(-.55,-0.05)) +
   guides(color=guide_legend(), size = guide_legend())+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
