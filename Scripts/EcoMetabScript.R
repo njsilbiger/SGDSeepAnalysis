@@ -1591,3 +1591,138 @@ c4<-summary(margins(mod.NEPc, at = list(Season = c("Dry","Wet"), Tide = c("High"
   theme_bw()
 
 ((v2+v4+v3+v1)+ plot_layout(ncol = 4))/((c2+c4+c3+c1) + plot_layout(ncol = 4))+plot_layout(guides = "collect")
+
+### not divided by tide 
+Cdata %>% anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  ggplot(aes(x = pH, y = NEC.proxy, color = Season))+ 
+  geom_point() +
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
+mod.pH<-lm(NEC.proxy~pH*Season, data = ModelData %>%
+             filter(Location == "Varari"))
+anova(mod.pH)
+
+
+v1<-summary(margins(mod.pH, at = list(Season = c("Dry","Wet"))))[1:2,] %>%
+  tibble()%>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x = Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(1, 0.3), guide = "none")+
+  labs(#title = "Varari",
+    y = " ",
+    x = " ")+
+  theme_bw()
+
+mod.pHC<-lm(NEC.proxy~pH*Season, data = ModelData %>%
+              filter(Location == "Cabral"))
+anova(mod.pHC)
+
+c1<-summary(margins(mod.pHC, at = list(Season = c("Dry","Wet"))))[1:2,] %>%
+  tibble()%>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x = Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(0.3, 1), guide = "none")+
+  labs(#title = "Cabral",
+    y = "Effect of pH on NEC",
+    x = " ")+
+  theme_bw()
+
+# TA distribution
+v2<-Cdata %>%
+  filter(Plate_Seep == "Plate", Location == "Varari") %>%
+  ggplot()+
+  geom_density_ridges(aes(y = Season, x = TA, fill = Tide), alpha = 0.5,  scale = 1)+
+  scale_x_continuous(limits = c(2000,2500))+
+  labs(y = "Varari", x = " ")+
+  theme_bw()
+
+
+c2<-Cdata %>%
+  filter(Plate_Seep == "Plate", Location == "Cabral") %>%
+  ggplot()+
+  geom_density_ridges(aes(y = Season, x = TA, fill = Tide), alpha = 0.5,  scale = 1)+
+  scale_x_continuous(limits = c(2000,2500))+
+  labs(y = "Cabral")+
+  theme_bw()
+
+## effect of NEP and Salinity on pH
+
+mod.NEP<-lm(pH~(Silicate_umolL+NEP.proxy)*Season, data = ModelData %>%
+              filter(Location == "Varari"))
+anova(mod.NEP)
+
+v3<-summary(margins(mod.NEP, at = list(Season = c("Dry","Wet"))))[1:2,] %>%
+  tibble() %>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x =  Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(1, 0.3), guide = "none")+
+  labs(#title = "Cabral",
+    y = " ", x = " ")+
+  theme_bw()
+
+v4<-summary(margins(mod.NEP, at = list(Season = c("Dry","Wet"))))[5:6,] %>%
+  tibble() %>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x = Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(0.3, 1), guide = "none")+
+  labs(#title = "Cabral",
+    y = " ", x = "")+
+  theme_bw()
+
+mod.NEPc<-lm(pH~(log(Silicate_umolL)+NEP.proxy)*Season, data = ModelData %>%
+               filter(Location == "Cabral"))
+anova(mod.NEPc)
+
+c3<-summary(margins(mod.NEPc, at = list(Season = c("Dry","Wet"))))[1:2,] %>%
+  tibble() %>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x =  Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(1, 0.3), guide = "none")+
+  labs(#title = "Cabral",
+    y = "Effect of NEP on pH",
+    x = " ")+
+  theme_bw()
+
+c4<-summary(margins(mod.NEPc, at = list(Season = c("Dry","Wet"))))[5:6,] %>%
+  tibble() %>%
+  mutate(sig = ifelse(p <= 0.05, "yes", "no")) %>%
+  ggplot(aes(x = Season, y = AME, alpha = sig))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1)+
+  scale_y_continuous(limits = c(-1,1.5))+
+  coord_flip()+
+  scale_alpha_manual(values = c(0.3, 1), guide = "none")+
+  labs(#title = "Cabral",
+    y = "Effect of SGD on pH", x = " ")+
+  theme_bw()
+
+((v2+v4+v3+v1)+ plot_layout(ncol = 4))/((c2+c4+c3+c1) + plot_layout(ncol = 4))+plot_layout(guides = "collect")
