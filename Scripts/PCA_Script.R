@@ -55,10 +55,14 @@ Data<-Data %>%
   left_join(SeepAll) %>%
   left_join(CommData) %>%
   mutate(NewDay_Night = case_when( 
-    Tide == "Low" & Day_Night == "Day" ~ "Night", # change day and night delineations... dusk and dawn are now night and day 
-    Tide == "Low" & Day_Night == "Night" ~ "Day",
-    Tide == "High" & Day_Night == "Day" ~ "Day",
-    Tide == "High" & Day_Night == "Night" ~ "Night"
+    TimeBlock == "Evening" ~ "Day", # change day and night delineations... dusk and dawn are now night and day 
+    TimeBlock == "Morning" ~ "Night" ,
+    TimeBlock == "Night" ~ "Night",
+    TimeBlock == "Afternoon" ~ "Day"
+    # Tide == "Low" & Day_Night == "Day" ~ "Night", # change day and night delineations... dusk and dawn are now night and day 
+    # Tide == "Low" & Day_Night == "Night" ~ "Day",
+    # Tide == "High" & Day_Night == "Day" ~ "Day",
+    # Tide == "High" & Day_Night == "Night" ~ "Night"
   ),
   Day_Night = NewDay_Night) %>% # replace it
   select(!NewDay_Night)
