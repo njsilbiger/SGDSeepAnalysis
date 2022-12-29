@@ -161,10 +161,14 @@ Vend_spring<-Cdata %>%
   select(Location,  TA_Spring = TA,DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
   slice(1)
 
+Vend_spring <- bind_rows(Vend_spring, Vend_spring) %>% # use the same end memeber for dry and wet
+  mutate(Season = c("Dry","Wet"))
+  
+
 Cend_spring<-Cdata %>%
-  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID == "CSPRING_BEACH2") %>% # was CSPRING_ROAD prior
-  select(Location, TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
-  slice(1)
+  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID %in% c("CSPRING", "CSPRING_ROAD") )%>% # was CSPRING_ROAD prior
+  select(Location,Season, TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
+  slice(1:2)
 
 Spring<-bind_rows(Vend_spring, Cend_spring)
 ## Calculate endmembers for the "ocean" which will be the average salinity or silicate during high tide by season
@@ -173,10 +177,11 @@ endmembers<- Cdata %>%
   filter(Plate_Seep == "Plate")%>%
   drop_na(Silicate_umolL)%>%
    group_by(Location, Season, Tide) %>%
-   summarise_at(vars(Salinity, Silicate_umolL), .funs = list(median)) %>%
+  # summarise_at(vars(Salinity, Silicate_umolL), .funs = list(median)) %>%
+   summarise_at(vars(Salinity, Silicate_umolL), .funs = list(min, max)) %>%
    filter(Tide == "High") %>%
-   rename(Salinity_High = Salinity, Silicate_umolL_High = Silicate_umolL) %>%
-   select(!Tide) %>%
+   rename(Salinity_High = Salinity_fn2, Silicate_umolL_High = Silicate_umolL_fn1) %>%
+   select(Location, Season ,Salinity_High, Silicate_umolL_High) %>%
    left_join(Spring) # bring in the spring data
 
 
@@ -488,7 +493,6 @@ Cdata %>%
   facet_wrap(~Params, scales = "free")
 
 
-
 #### relationships among parameters
 # Si vs NN
 Cdata %>%
@@ -501,7 +505,7 @@ Cdata %>%
 # Si vs Salinity
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = log(Silicate_umolL), y = Salinity))+
+  ggplot(aes(y = log(Silicate_umolL), x = Salinity))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location*Season, scales = "free")
@@ -1048,13 +1052,13 @@ models_both<-Cdata %>%
          Location == "Varari") %>%
   left_join(turb_all) %>% # join in the turb data
   nest(data = -c(Location,CowTagID)) %>%
-  mutate(fit = map(data, ~lm(NEC~NEP, data = .)),
+  mutate(fit = map(data, ~lm(NEC.proxy~NEP.proxy, data = .)),
          # fit = map(data, ~lm(TA.diff/2~DIC.diff, data = .)),
          coefs = map(fit, tidy)) %>%
   select(!fit)%>%
   unnest(cols = coefs) %>%
   #filter(term == "DIC.diff") %>%
-  filter(term == "NEP") %>%
+  filter(term == "NEP.proxy") %>%
   unnest(cols = data) %>%
   group_by(Location,CowTagID, estimate)%>%
   #summarise_at(vars(pH, Salinity, NN_umolL, Silicate_umolL), .funs = ~(max(.x,na.rm=TRUE)))%>%
@@ -1141,7 +1145,7 @@ mod_site<-lm(estimate ~ (NN_umolL+pH)*Season, data = models %>% filter(Location 
 anova(mod_site)
 
 
-ggplot(Cdata %>% filter(Location  == "Varari"), aes(x = NEP, y = NEC))+
+ggplot(Cdata %>% filter(Location  == "Varari"), aes(x = NEP.proxy, y = NEC.proxy))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~CowTagID, scales = "free")
@@ -1177,12 +1181,12 @@ Cdata %>%
   left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = log(NN_umolL), y = NEP,color = Season))+
+  ggplot(aes(x = log(NN_umolL), y = NEP.proxy,color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location,scales = "free")
 
-moda<-lm(NEP~log(NN_umolL)*Season, data = Cdata %>%
+moda<-lm(NEP.proxy~log(NN_umolL)*Season, data = Cdata %>%
            filter(NEP<60)%>%
            left_join(turb_all) %>%
            left_join(Benthic.Cover_Categories) %>%
@@ -1207,13 +1211,13 @@ Cdata %>%
   left_join(turb_all) %>%
   left_join(Benthic.Cover_Categories) %>%
   filter( Plate_Seep == "Plate") %>%
-  ggplot(aes(x = pH, y = NEC, color = Season)) +
+  ggplot(aes(x = pH, y = NEC.proxy, color = Season)) +
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Location,scales = "free")
 
 
-modb<-lm(NEC~pH*Season, data = Cdata %>%
+modb<-lm(NEC.proxy~pH*Season, data = Cdata %>%
            filter(NEP<60)%>%
            filter(Location == "Varari", Plate_Seep == "Plate"))
 
@@ -1249,14 +1253,14 @@ anova(modpHratio)
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
   droplevels()%>%
-ggplot(aes(x = Tide, y = NEP, color = Day_Night))+
+ggplot(aes(x = Tide, y = NEP.proxy, color = Day_Night))+
   geom_boxplot()+
   facet_wrap(~Location*Season, scales = "free")
 
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
   droplevels()%>%
-  ggplot(aes(x = Tide, y = NEC, color = Day_Night))+
+  ggplot(aes(x = Tide, y = NEC.proxy, color = Day_Night))+
   geom_boxplot()+
   facet_wrap(~Location*Season, scales = "free")
 
@@ -1275,13 +1279,13 @@ testing<-Cdata %>%
   left_join(Benthic.Cover_Categories)
   
 testing %>%  
-  ggplot(aes(x = pH_mean, y = NEC_mean, color = Season))+
+  ggplot(aes(x = pH_mean, y = NEC.proxy_mean, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Season*Location, scales = "free")
 
 testing %>%  
-ggplot(aes(x = log(Silicate_umolL_CoV), y = NEC_mean, color = Season))+
+ggplot(aes(x = log(Silicate_umolL_CoV), y = NEC.proxy_mean, color = Season))+
    geom_point()+
   geom_smooth(method = "lm")+
    facet_wrap(~Season*Location, scales = "free")
@@ -1299,13 +1303,13 @@ testing %>%
   facet_wrap(~Season*Location, scales = "free")
 
 testing %>%  
-  ggplot(aes(x = TotalCoral, y = NEC_mean, color = Season))+
+  ggplot(aes(x = TotalCoral, y = NEC.proxy_mean, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Season*Location, scales = "free")
 
 testing %>%  
-  ggplot(aes(x = Silicate_umolL_mean, y = NEC_mean, color = Season))+
+  ggplot(aes(x = Silicate_umolL_mean, y = NEC.proxy_mean, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Season*Location, scales = "free")
@@ -1316,11 +1320,6 @@ testing %>%
   geom_smooth(method = "lm")+
   facet_wrap(~Season*Location, scales = "free")
 
-moda<-lm(NEC_mean ~ pH_mean*Season, data = testing %>% filter(Location == "Varari"))
-anova(moda)  
-
-moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
-anova(moda)  
 
 testing %>%  
   ggplot(aes(x = log(NN_umolL_mean), y = NEP_sum, color = Season))+
@@ -1329,15 +1328,15 @@ testing %>%
   facet_wrap(~Season*Location, scales = "free")
 
 testing %>%  
-  ggplot(aes(x = log(NN_umolL_mean), y = NEC_mean, color = Season))+
+  ggplot(aes(x = log(NN_umolL_mean), y = NEC.proxy_mean, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   facet_wrap(~Season*Location, scales = "free")
 
-moda<-lm(NEC_mean ~ pH_mean*Season, data = testing%>% filter(Location == "Varari"))
+moda<-lm(NEC.proxy_mean ~ pH_mean*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda)  
 
-moda<-lm(NEC_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
+moda<-lm(NEC.proxy_mean ~ log(Silicate_umolL_CoV)*Season, data = testing%>% filter(Location == "Varari"))
 anova(moda) 
  
 ### look at fDOM
