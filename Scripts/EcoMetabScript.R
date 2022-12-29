@@ -59,9 +59,18 @@ distance<-read_csv(here("Data","distance_depth.csv")) %>%
   select(CowTagID, dist_to_crest,Depth_m)
 
 
+# calculate average depth of the site
+SiteDepth<-distance %>%
+  left_join(Data)%>%
+  group_by(Location) %>%
+  summarise(meanDepth = mean(Depth_m, na.rm = TRUE)) %>%
+  mutate(reeflength = ifelse(Location  == "Varari",189,100)) # or 272 for cabral if south to north
+
+
 ## load the current speed data
 currentspeed<-read_csv(here("Data","currentspeed.csv")) %>%
   mutate(DateTime = ymd_hms(DateTime))
+
 
 #### Visualize the TA data ####
 
@@ -71,9 +80,10 @@ Data <- Data %>%
   #bind_rows(Data_wet) %>%
   left_join(distance) %>% # add in the distance and depth data
   left_join(currentspeed)%>%
+  left_join(SiteDepth) %>%
  # select(!c(SeepCode:LoggerID,Top_Plate_ID:Jamie_Plate_ID)) %>% # remove unnecessary columns
   select(!c(Top_Plate_ID:Jamie_Plate_ID)) %>%
-  mutate(residence_time_h = (1/CurrentSpeed_m_s)*dist_to_crest*(1/60),
+  mutate(residence_time_h = (1/CurrentSpeed_m_s_av)*reeflength*(1/60),
         # residence_time_h = (1/CurrentSpeed_m_s)*dist_to_seep_m*(1/60),  # calculate residence time of water moving from seep to cowtagID in hours
          rho = swRho(salinity = Salinity, temperature = Temperature, pressure = 0, eos="unesco")) # calculate seawater density in kg/m3
 
@@ -140,6 +150,11 @@ Cdata[,c("CO2","HCO3","CO3","DIC","OmegaArag","OmegaCalcite","pCO2","fCO2")]<-
                             #Location == 'Varari' & Season == 'Wet'~ TA+(TA - TA.seep.end)*((Salinity - High.Salinity)/(Seep.salinity - Salinity))
 #                            )
 
+
+### Calculate endmembers from the mixing line (remove the dug well and the street samples at Cabral)
+
+Cdata %>% filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% filter( TA <5000 & TA >1500)
+
 ## calculate the endmembers from the springs
 Vend_spring<-Cdata %>%
   filter(Plate_Seep == "Spring", CowTagID == "VSPRING") %>%
@@ -147,7 +162,7 @@ Vend_spring<-Cdata %>%
   slice(1)
 
 Cend_spring<-Cdata %>%
-  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID == "CSPRING_ROAD") %>%
+  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID == "CSPRING_BEACH2") %>% # was CSPRING_ROAD prior
   select(Location, TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
   slice(1)
 
@@ -167,8 +182,6 @@ endmembers<- Cdata %>%
 
 Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to make it easier to calculate
   
-
-
 ## Select the VSpring  which is after it had gone through the sand. The two values are almost identica
 
 ## instead of using end members, use the regression between TA and salinity at the seep to make a mixing line and predict what
@@ -178,6 +191,7 @@ Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to
 # some plots of the relationship betwen TA, DIC, NN, and PO versus salinity at the seep
 Cdata %>%
   filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% 
+  filter( TA <5000 & TA >1500) %>% # remove the road samples
   ggplot(aes(x = Salinity, y = TA, color = Season))+
   geom_point(aes(color = Season))+
   geom_smooth(method = "lm")+
@@ -185,12 +199,14 @@ Cdata %>%
 
 Cdata %>%
   filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% 
+  filter( TA <5000 & TA >1500) %>% # remove the road samples
   ggplot(aes(x = Salinity, y = pH, color = Season))+
   geom_smooth(method = "lm")+
   geom_point()+facet_wrap(~Location, scale = "free")
 
 Cdata %>%
   filter(Plate_Seep == "Seep") %>% 
+  filter( TA <5000 & TA >1500) %>% # remove the road samples
   ggplot(aes(x = Salinity, y = NN_umolL, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
@@ -198,6 +214,7 @@ Cdata %>%
 
 Cdata %>%
   filter(Plate_Seep == "Seep") %>% 
+  filter( TA <5000 & TA >1500) %>% # remove the road samples
   ggplot(aes(x = Salinity, y = Phosphate_umolL, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
@@ -280,8 +297,8 @@ Cdata<-Cdata %>%
          # NN.diff =  NN.mix - NN_umolL,
          # PO.mix = ifelse(Location  == "Varari",Salinity*VcoPO[2]+VcoPO[1],Salinity*CcoPO[2]+CcoPO[1]),
          # PO.diff =  PO.mix -Phosphate_umolL,
-         NEC = ((rho*Depth_m*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
-         NEP = ((rho*Depth_m*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000, #mmol m-2 hr-1,
+         NEC = ((rho*meanDepth*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
+         NEP = ((rho*meanDepth*(DIC.diff - (TA.diff/2)))/residence_time_h)/1000, #mmol m-2 hr-1, rho = 1025
          NEC.proxy = TA.diff/2,
          NEP.proxy = DIC.diff - (TA.diff/2)
         # NEC = ((rho*0.575*TA.diff)/(2*residence_time_h))/1000, #mmol m-2 hr-1 0.575 is the average depth of the site
@@ -378,7 +395,7 @@ Cdata %>%
   anti_join(remove_varari)%>%
   anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
-  ggplot(aes(x = DIC.diff-(TA.diff/2), y = TA.diff/2, color = Tide,
+  ggplot(aes(x = NEP.proxy, y = NEC.proxy, color = Tide,
              shape = Day_Night))+
   geom_point()+
   geom_hline(yintercept = 0)+
@@ -424,14 +441,36 @@ Cdata %>%
   anti_join(remove_cabral)%>%
   filter(Plate_Seep == "Plate") %>%
   drop_na(NEC)%>%
-  ggplot(aes(x = pH, y = NEC))+
-  geom_point()+
+  ggplot(aes(x = pH, y = NEC, color = Tide))+
+  geom_point(aes(shape = Day_Night))+
 #  geom_hline(yintercept = 0)+
 #  geom_vline(xintercept = 0)+
   geom_smooth(method = "lm")+
- facet_wrap(~Location*Season, scales = "free")
+ facet_wrap(~Location*Season*Tide, scales = "free")
 
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  drop_na(NEC)%>%
+  ggplot(aes(x = pH, y = NEC.proxy, color = Tide))+
+  geom_point(aes(shape = Day_Night))+
+  #  geom_hline(yintercept = 0)+
+  #  geom_vline(xintercept = 0)+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season*Tide, scales = "free")
 
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  drop_na(NEC)%>%
+  ggplot(aes(x = NEC.proxy, y = NEC, color = Tide))+
+  geom_point()+
+  #  geom_hline(yintercept = 0)+
+  #  geom_vline(xintercept = 0)+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location*Season*Tide, scales = "free")
 
 # Silicate versus everything in the seep
 
@@ -526,7 +565,7 @@ Cdata %>%
 # NN vs delta DIC
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = log(NN_umolL), y = DIC.diff, shape = Tide_Time))+
+  ggplot(aes(x = log(NN_umolL), y = NEP, shape = Tide_Time))+
   geom_smooth(method = "lm")+
   geom_point()+
   facet_wrap(~Location*Season, scales = "free")
@@ -553,7 +592,7 @@ Cdata %>%
   ggplot(aes(x = NEP, y = pH, color = Season, shape = Tide))+
   geom_smooth(method = "lm")+
   geom_point()+
-  facet_wrap(~Location, scales = "free")
+  facet_wrap(~Location*Season, scales = "free")
 
 # pH vs delta TA
 Cdata %>%
@@ -573,10 +612,10 @@ Cdata %>%
 #  Temperature vs delta TA
 Cdata %>%
   filter(Plate_Seep == "Plate")%>%
-  ggplot(aes(x = Temperature, y = NEC.proxy, color = Season))+
+  ggplot(aes(x = Temperature, y = NEC, color = Season, shape = Tide))+
   geom_point()+
   geom_smooth(method = "lm")+
-  facet_wrap(~Location, scales = "free")
+  facet_wrap(~Location*Season, scales = "free")
 
 ## What is the distribution of average silicate at the plates
 
@@ -1160,7 +1199,7 @@ Cdata %>%
   ggplot(aes(x = Salinity, y = pH, shape = Tide_Time))+
   geom_point(aes(color = Season))+
   geom_smooth(method = "lm")+
-  facet_wrap(~Season*Location)
+  facet_wrap(~Season*Location, scale = "free")
 
 
 Cdata %>%
