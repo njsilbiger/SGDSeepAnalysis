@@ -267,18 +267,18 @@ V_pca_Data_all<-Data %>%
 
 # scores plot
 p1<-V_pca_Data_all %>%
-  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
   geom_point(size = 2) +
  # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  scale_shape_manual(values = c(22,16))+
+  scale_shape_manual(values = c(1, 22,15,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
-    aes(fill = Tide, label = paste(Day_Night, Tide), color =Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
+    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0)+
   labs(title = "Dry",
        x = paste0("PC1 ","(",perc.explained[1],"%)"),
        y = paste0("PC2 ","(",perc.explained[2],"%)"))+
@@ -291,18 +291,18 @@ p1<-V_pca_Data_all %>%
         plot.title = element_text(hjust = 0.5, size = 18))
 
 p1_wet<-V_pca_Data_all_wet %>%
-  ggplot(aes(x = -PC1, y = -PC2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = -PC1, y = -PC2, color = Tide, shape = TimeBlock))+
   geom_point(size = 2) +
   # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
   coord_cartesian(xlim = c(-8, 8), ylim = c(-8, 8)) +
-  scale_shape_manual(values = c(22,16))+
+  scale_shape_manual(values = c(1, 22,15,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
-    aes(fill = Tide, label = paste(Day_Night, Tide), color =Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
+    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
   labs(title = "Wet",
        x = paste0("PC1 ","(",perc.explained_wet[1],"%)"),
        y = paste0("PC2 ","(",perc.explained_wet[2],"%)"))+
@@ -554,18 +554,18 @@ C_pca_Data_all_wet<-Data %>%
 
 # scores plot
 p1c<-C_pca_Data_all %>%
-  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
   geom_point() +
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  scale_shape_manual(values = c(22,16))+
+  scale_shape_manual(values = c(1, 22,15,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   labs(title = "Dry",
        x = paste0("PC1 ","(",perc.explainedC[1],"%)"),
        y = paste0("PC2 ","(",perc.explainedC[2],"%)"))+
   ggforce::geom_mark_ellipse(
-    aes(fill = Tide, label = paste(Day_Night, Tide), color = Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
+    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
   theme_bw()+
   theme(legend.position = "none",
         panel.grid.major = element_blank(), 
@@ -575,18 +575,18 @@ p1c<-C_pca_Data_all %>%
         plot.title = element_text(hjust = 0.5, size = 18))
 
 p1c_wet<-C_pca_Data_all_wet %>%
-  ggplot(aes(x = PC1, y = -PC2, color = Tide, shape = Day_Night))+
+  ggplot(aes(x = PC1, y = -PC2, color = Tide, shape = TimeBlock))+
   geom_point() +
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  scale_shape_manual(values = c(22,16))+
+  scale_shape_manual(values = c(1, 22,15,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   labs(title = "Wet",
        x = paste0("PC1 ","(",perc.explainedC_wet[1],"%)"),
        y = paste0("PC2 ","(",perc.explainedC_wet[2],"%)"))+
   ggforce::geom_mark_ellipse(
-    aes(fill = Tide, label = paste(Day_Night, Tide), color = Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"))+
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
+    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
   theme_bw()+
   theme(legend.position = "none",
         panel.grid.major = element_blank(), 
@@ -855,7 +855,7 @@ V_pca_Data_all_Seep_wet<-Data %>%
 p1seep<-PC_loadings_Seep%>%
 #  drop_na(Depth_seep)%>%
   ggplot(aes(x = PC1, y = PC2, label=nicenames, color = groupings))+
-   #geom_point(data = V_pca_Data_all_Seep, inherit.aes = FALSE, aes(x = PC1, y = PC2, shape = Day_Night)) +
+ #  geom_point(data = V_pca_Data_all_Seep, inherit.aes = FALSE, aes(x = PC1, y = PC2, shape = Tide)) +
     coord_cartesian(xlim = c(-2, 2), ylim = c(-2, 2)) +
   #scale_shape_manual(values = c(22,16))+
 #  scale_color_gradient(low = "black", high = "yellow")+
@@ -1083,6 +1083,7 @@ Data %>%
 ## Calculate the ranges for each parameter
 ranges<-Data %>%
   filter(Plate_Seep=="Seep"| Plate_Seep == "Spring") %>% # just do the seep data
+  filter(CowTagID != "Varari_Well") %>% # remove the well sample
   select(Location,Season, Salinity, TA,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX, TempInSitu_seep, MarineHumic_Like, Lignin_Like, M_C)%>%
  # select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
   pivot_longer(cols = c(Salinity, TA: M_C)) %>%
@@ -1180,6 +1181,7 @@ cor_fun <- function(data) cor.test(data$value, data$Salinity, method = "pearson"
 
 cortest<-Datalog %>%
   filter(Plate_Seep=="Seep" | Plate_Seep == "Spring" ) %>% # just do the seep data
+  filter(CowTagID != "Varari_Well") %>% # remove the well sample
   select(Location,Season, Salinity, TA: Lignin_Like, TempInSitu_seep)%>%
   pivot_longer(cols = c(TA: Lignin_Like, TempInSitu_seep)) %>%
   drop_na()%>%
@@ -1193,7 +1195,7 @@ cortest<-Datalog %>%
 Vcortest_salinity<-cortest %>%
   filter(!name %in% c("M_C","HIX"),
          Location == "Varari")%>%
-  ggplot(aes(x = fct_reorder(name, abs(estimate)), y = Season, color = estimate, size = abs(estimate)))+
+  ggplot(aes(x = name, y = Season, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0,limits = c(-1,1) )+
@@ -1211,7 +1213,7 @@ Vcortest_salinity<-cortest %>%
 Ccortest_salinity<-cortest %>%
   filter(!name %in% c("M_C","HIX"),
          Location == "Cabral")%>%
-  ggplot(aes(x = fct_reorder(name, abs(estimate)), y = Season, color = estimate, size = abs(estimate)))+
+  ggplot(aes(x = name, y = Season, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0,limits = c(-1,1) )+
