@@ -49,7 +49,7 @@ NNmod<-bf(NNumolL ~SilicateumolL, family = "student") ### N and P are highly cor
 Pmod<-bf(PhosphateumolL ~SilicateumolL, family = "student")
 NH4mod<-bf(AmmoniaumolL ~SilicateumolL, family = "student") # N and NH4 are weakly correlated
 NEPmod<-bf(NEP.proxy~(Day.Night*NNumolL) +Temperature, family = "student") ## N or P or NH4?
-pHmod<-bf(pH~ SilicateumolL*NEP.proxy, family = "student")
+pHmod<-bf(pH~ NEP.proxy*SilicateumolL, family = "student")
 #pHmod<-bf(pH~ SilicateumolL+NEP.proxy + (1|Day.Night), family = "student")
 
 NECmod<-bf(NEC.proxy~pH+Temperature, family = "student")
@@ -455,7 +455,10 @@ get_post<-function(site,season, fit){
     mutate(sig = ifelse(sign(.lower)==sign(.upper),'yes','no'))%>%# if not significant make it grey
     separate(col = key,into = c("b", "dependent", "independent"),sep = "_")%>% #loose the b and bring the values back together
     mutate(independent  = recode(independent, Day = "Day/Night", `NEP.proxy:Day` = "NEP.proxy:Day/Night")) %>%# mutate(key = paste(dependent, independent))%>%
-    mutate(dependent = factor(dependent, levels = c("NNumolL","NEPproxy","pH","NECproxy","Humics","Proteinaceous")))%>%
+    mutate(dependent = factor(dependent, levels = c("SilicateumolL","NNumolL","NEPproxy","pH","NECproxy","Humics","Proteinaceous")))%>%
+    mutate(dependent = recode(dependent,"SilicateumolL" = "Silicate","NNumolL" = "NOx","NEPproxy" = "NEP","NECproxy" = "NEC")) %>%
+    mutate(independent = factor(independent, levels = c("NEC.proxy","Day.NightNight:NEP.proxy:SilicateumolL","Day.NightNight:NEP.proxy","Day.NightNight:SilicateumolL","pH","NEP.proxy:SilicateumolL","NEP.proxy","Day.NightNight","Day.NightNight:NNumolL","NNumolL","Temperature","SilicateumolL","Salinity")))%>%
+    mutate(independent = recode(independent, "NEC.proxy" = "NEC","Day.NightNight:NEP.proxy:SilicateumolL" = "Day/Night x NEP x Silicate","Day.NightNight:NEP.proxy" = "Day/Night x NEP","Day.NightNight:SilicateumolL" = "Day/Night x Silicate","NEP.proxy:SilicateumolL" = "NEP x Silicate","NEP.proxy" = "NEP","Day.NightNight" = "Day/Night","Day.NightNight:NNumolL" = "Day/Night x NOx","NNumolL" = "NOx","SilicateumolL"= "Silicate"))%>%
     mutate(Location = site, Season = season)
   
   return(Cof)
@@ -514,8 +517,6 @@ CoefPlot<-AllCoefs%>%
   #scale_alpha_manual(values = c(0.2,1))+
   scale_shape_manual(values = c(1,16))+
   scale_color_brewer(palette = "Set2")+
-  #  scale_color_manual(values = c("firebrick4", "orange"), name = " ")+
-  
   labs(
     x = NULL, y = NULL) +
   theme_bw() +
@@ -531,7 +532,7 @@ CoefPlot<-AllCoefs%>%
         strip.text = element_text(size = 14, face = "bold")
   )+
   facet_grid(Season~dependent, scales = "free_y", space='free')
-ggplot2::ggsave("Output/coefficientsAll.pdf", width = 10, height = 8, useDingbats = FALSE)
+ggplot2::ggsave("Output/coefficientsAll.pdf", width = 12, height = 8, useDingbats = FALSE)
 
 
 ## Plot showing nitrate leading to net heterotrophy
