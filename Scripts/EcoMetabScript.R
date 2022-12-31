@@ -279,8 +279,9 @@ incoming<-Cdata %>%
 
 ## calculate average TA and DIC from offshore water/ VRC and CRS
 crestwater<-Cdata %>%
-  filter(Plate_Seep == "Offshore") %>%
+  filter(Plate_Seep == "Offshore", DIC<2060) %>%
   group_by(Location, TimeBlock) %>%
+  #group_by(Location, Day_Night) %>%
            #, Day_Night, Tide) %>%
   summarise(TA.offshore = mean(TA, na.rm = TRUE),
             DIC.offshore = mean(DIC, na.rm = TRUE)) %>%
