@@ -44,21 +44,24 @@ ModelData<-Cdata %>%
 
 ### Create the models ####
 
-SGDmod<-bf(Silicate_umolL~Salinity, family = "student")
+SGDmod<-bf(SilicateumolL~Salinity, family = "student")
 NNmod<-bf(NNumolL ~SilicateumolL, family = "student") ### N and P are highly correlated 
 Pmod<-bf(PhosphateumolL ~SilicateumolL, family = "student")
 NH4mod<-bf(AmmoniaumolL ~SilicateumolL, family = "student") # N and NH4 are weakly correlated
 NEPmod<-bf(NEP.proxy~(Day.Night*NNumolL) +Temperature, family = "student") ## N or P or NH4?
-pHmod<-bf(pH~ SilicateumolL+NEP.proxy + (1|Day.Night), family = "student")
+pHmod<-bf(pH~ SilicateumolL*NEP.proxy, family = "student")
+#pHmod<-bf(pH~ SilicateumolL+NEP.proxy + (1|Day.Night), family = "student")
+
 NECmod<-bf(NEC.proxy~pH+Temperature, family = "student")
-Humicsmod<-bf(Humics~(Day.Night*NEP.proxy)+SilicateumolL, family = "student")
-Protmod<-bf(Proteinaceous~NEC.proxy, family = "student")
+#Humicsmod<-bf(Humics~(Day.Night*NEP.proxy)+SilicateumolL, family = "student")
+Humicsmod<-bf(Humics~Day.Night*NEP.proxy*SilicateumolL, family = "student")
+Protmod<-bf(Proteinaceous~NEC.proxy+SilicateumolL, family = "student")
 
 # Function to run Bayesian SEM and make the posterior predictive checks and plot marginal effects
 RunSEM<-function(site, season){
   
   
-  fit_brms <- brm(#SGDmod+
+  fit_brms <- brm(SGDmod+
                     NNmod+
                     NEPmod+
                     pHmod+
@@ -71,9 +74,9 @@ RunSEM<-function(site, season){
   # calculate LOO (leave one out) diagnostics
   SGD_loo<-loo(fit_brms, reloo = TRUE) # looks good!
   
-   # p1<-pp_check(fit_brms, resp="SilicateumolL") +
-   #   scale_color_manual(values=c("red", "black"))+
-   #   ggtitle("Silicate")
+   p1<-pp_check(fit_brms, resp="SilicateumolL") +
+     scale_color_manual(values=c("red", "black"))+
+     ggtitle("Silicate")
   
   p2<-pp_check(fit_brms, resp="NNumolL") +
     scale_color_manual(values=c("red", "black"))+
@@ -98,7 +101,7 @@ RunSEM<-function(site, season){
     scale_color_manual(values=c("red", "black"))+
     ggtitle("Proteinaceous")
 
-  #p1+ 
+  p1+ 
     p2+p3+p4+p5+p6+p7+
     #p6+
     plot_layout(guides = "collect") +
@@ -106,27 +109,27 @@ RunSEM<-function(site, season){
   ggsave(here("Output",paste(site,season, "Posteriorchecks.pdf")), width = 5, height = 5)
   
   # plot the results
-  # Model 1
-  # Silicate ~ Silicate
-  # R<-conditional_effects(fit_brms, "Salinity", resp = "SilicateumolL",  resolution = 1000)
-  # R1<-R$SilicateumolL.SilicateumolL_Salinity %>% # back transform the scaled effects for the plot
-  #   mutate(estimate = estimate__*attr(ModelData$Silicate_umolL,"scaled:scale")+attr(ModelData$Silicate_umolL,"scaled:center"),
-  #          lower = lower__*attr(ModelData$Silicate_umolL,"scaled:scale")+attr(ModelData$Silicate_umolL,"scaled:center"),
-  #          upper = upper__*attr(ModelData$Silicate_umolL,"scaled:scale")+attr(ModelData$Silicate_umolL,"scaled:center")) %>%
-  #   mutate(Salinity = Salinity*attr (ModelData$Salinity,"scaled:scale")+attr(ModelData$Salinity,"scaled:center")
-  #   )%>%
-  #   ggplot()+ # back trasform the log transformed data for better visual
-  #   geom_line(aes(x = Salinity, y = exp(estimate)), lwd = 1, color = 'grey')+
-  #   geom_ribbon(aes(x = Salinity,ymin=exp(lower), ymax=exp(upper)), linetype=1.5, alpha=0.3, fill = "grey")+
-  #   geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Salinity, y = Silicate_umolL)) +
-  #   xlab("Salinity (psu)")+
-  #   ylab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
-  #   ggtitle("Model 1")+
-  #   coord_trans(y="log")+
-  #  # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
-  # #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
-  #   theme_minimal()+
-  #   theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom')
+  #Model 1
+  #Silicate ~ Silicate
+  R<-conditional_effects(fit_brms, "Salinity", resp = "SilicateumolL",  resolution = 1000)
+  R1<-R$SilicateumolL.SilicateumolL_Salinity %>% # back transform the scaled effects for the plot
+    mutate(estimate = estimate__*attr(ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center"),
+           lower = lower__*attr(ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center"),
+           upper = upper__*attr(ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center")) %>%
+    mutate(Salinity = Salinity*attr (ModelData$Salinity,"scaled:scale")+attr(ModelData$Salinity,"scaled:center")
+    )%>%
+    ggplot()+ # back trasform the log transformed data for better visual
+    geom_line(aes(x = Salinity, y = exp(estimate)), lwd = 1, color = 'grey')+
+    geom_ribbon(aes(x = Salinity,ymin=exp(lower), ymax=exp(upper)), linetype=1.5, alpha=0.3, fill = "grey")+
+    geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Salinity, y = Silicate_umolL)) +
+    xlab("Salinity (psu)")+
+    ylab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
+#    ggtitle("Model 1")+
+    coord_trans(y="log")+
+   # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
+  #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom')
   
   ## Model 2
   # NN ~ Silicate
@@ -143,7 +146,7 @@ RunSEM<-function(site, season){
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = NN_umolL)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
     ylab(expression(atop("Nitrate + Nitrite", paste("(",mu,"mol L"^-1,")"))))+
-    ggtitle("Model 1")+
+ #   ggtitle("Model 2")+
     coord_trans(x = "log", y="log")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
@@ -166,7 +169,7 @@ RunSEM<-function(site, season){
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NN_umolL, y = NEP.proxy, color = Temperature, shape = Day_Night)) +
     ylab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     xlab(expression(atop("Nitrate + Nitrite", paste("(",mu,"mol L"^-1,")"))))+
-    ggtitle("Model 2")+
+ #   ggtitle("Model 3")+
     coord_trans(x = "log")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
@@ -195,7 +198,7 @@ RunSEM<-function(site, season){
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Temperature, y = NEP.proxy, color = NN_umolL)) +
     ylab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     xlab(expression(atop("Temperature", paste("(",degree, "C)"))))+
-    ggtitle("Model 2")+
+ #   ggtitle("Model 3")+
     scale_color_gradient(name = "N+N", trans = "log", breaks =c(0.1,.2, .3, 0.5,1), low = "lightgreen", high = "darkgreen")+
       # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
@@ -205,7 +208,7 @@ RunSEM<-function(site, season){
     guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5)) 
   
  # model 4
-  # pH ~ NEP + log(Silicate)
+  # pH ~ NEP *log(Silicate)
   R<-conditional_effects(fit_brms, "NEP.proxy", resp = "pH", resolution = 1000)
   R4<-R$pH.pH_NEP.proxy %>% # back transform the scaled effects for the plot
     mutate(estimate = estimate__*attr(ModelData$pH,"scaled:scale")+attr(ModelData$pH,"scaled:center"),
@@ -220,7 +223,7 @@ RunSEM<-function(site, season){
     scale_color_gradient(name = "Silicate", trans = "log", breaks =c(0.1,1,2,3,5,10,15), low = "lightblue", high = "darkblue")+
     xlab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     ylab("pH")+
-    ggtitle("Model 3")+
+ #   ggtitle("Model 4")+
       
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
@@ -231,17 +234,17 @@ RunSEM<-function(site, season){
   
   # pH ~ NEP + log(Silicate)
   
-R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000, re_formula = NULL)
+R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolution = 1000, re_formula = NULL)
 
-  R4a<-R$`pH.pH_SilicateumolL` %>% # back transform the scaled effects for the plot
+  R4a<-R$`pH.pH_SilicateumolL:NEP.proxy` %>% # back transform the scaled effects for the plot
     mutate(estimate = estimate__*attr(ModelData$pH,"scaled:scale")+attr(ModelData$pH,"scaled:center"),
            lower = lower__*attr(ModelData$pH,"scaled:scale")+attr(ModelData$pH,"scaled:center"),
            upper = upper__*attr(ModelData$pH,"scaled:scale")+attr(ModelData$pH,"scaled:center")) %>%
     mutate(SilicateumolL = SilicateumolL*attr (ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center")
     )%>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate), lwd = 1, color = "grey")+
-    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper), fill = "grey", linetype=1.5, alpha=0.3)+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate, lty = factor(NEP.proxy)), lwd = 1, color = "grey")+
+    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper, lty = factor(NEP.proxy)), fill = "grey", alpha=0.3)+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = pH, color = NEP.proxy)) +
     scale_color_gradient2(low = "#D8B365",
                           mid = "gray88",
@@ -249,14 +252,15 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
                           midpoint = 0)+
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
     ylab("pH")+
-    ggtitle("Model 3")+
+ #   ggtitle("Model 4")+
     coord_trans(x="log")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
     theme_minimal()+
     theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom',
           legend.box = "horizontal")+
-    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5)) 
+    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5),
+           lty = "none") 
   
   # Model 5
   # NEC ~ pH + Temperature
@@ -274,7 +278,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = pH, y = NEC.proxy, color = Temperature)) +
     ylab(expression(atop("NEC", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     xlab("pH")+
-    ggtitle("Model 4")+
+ #   ggtitle("Model 5")+
     scale_color_gradient(low = "blue", high = "red", name = "Temperature")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
@@ -299,7 +303,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     ylab(expression(atop("NEC", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     xlab(expression(atop("Temperature", paste("(",degree, "C)"))))+
     scale_color_gradient(low = "peachpuff", high = "sienna", name = expression("pH"[t]))+
-    ggtitle("Model 4")+
+ #   ggtitle("Model 5")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
     theme_minimal()+
@@ -324,7 +328,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     scale_color_gradient(name = "Silicate", trans = "log", breaks =c(0.1,1,2,3,5,10,15), low = "lightblue", high = "darkblue")+
     xlab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     ylab(expression(atop("Humics","(RU)")))+
-    ggtitle("Model 5")+
+ #   ggtitle("Model 6")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
     theme_minimal()+
@@ -335,7 +339,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
            shape = guide_legend(title = "Day/Night", title.position="top", title.hjust = 0.5)) 
   
   # Humics~NEP.proxy*Day.Night+Silicate_umolL
-  R<-conditional_effects(fit_brms, "SilicateumolL", resp = "Humics", resolution = 1000)
+  R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "Humics", resolution = 1000)
   R6a<-R$Humics.Humics_SilicateumolL %>% # back transform the scaled effects for the plot
     mutate(estimate = estimate__*attr(ModelData$Humics,"scaled:scale")+attr(ModelData$Humics,"scaled:center"),
            lower = lower__*attr(ModelData$Humics,"scaled:scale")+attr(ModelData$Humics,"scaled:center"),
@@ -343,12 +347,12 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     mutate(SilicateumolL = SilicateumolL*attr (ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center")
     )%>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate), lwd = 1, color = 'grey')+
-    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper), linetype=1.5, alpha=0.3, fill = 'grey')+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate, lty = factor(NEP.proxy)), lwd = 1, color = 'grey')+
+    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper, lty = factor(NEP.proxy)),  alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = VisibleHumidic_Like +MarineHumic_Like, color = NEP.proxy)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
     ylab(expression(atop("Humics","(RU)")))+
-    ggtitle("Model 5")+
+#    ggtitle("Model 6")+
     coord_trans(x="log")+
     scale_color_gradient2(low = "#D8B365",
                           mid = "gray88",
@@ -359,7 +363,8 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     theme_minimal()+
     theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom',
           legend.box = "horizontal")+
-    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5))  
+    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5),
+           lty = "none")  
  
   # Model 7
   # bf(Proteinaceous~NEC.proxy+Day.Night)
@@ -373,17 +378,47 @@ R<-conditional_effects(fit_brms, "SilicateumolL", resp = "pH", resolution = 1000
     ggplot()+ # back trasform the log transformed data for better visual
     geom_line(aes(x = NEC.proxy, y = estimate), color = "grey", lwd = 1)+
     geom_ribbon(aes(x = NEC.proxy,ymin=lower, ymax=upper),fill = "grey", linetype=1.5, alpha=0.3)+
-    geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NEC.proxy, y = Tryptophan_Like +Tyrosine_Like)) +
+    geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NEC.proxy, y = Tryptophan_Like +Tyrosine_Like, color = Silicate_umolL)) +
+    scale_color_gradient(name = "Silicate", trans = "log", breaks =c(0.1,1,2,3,5,10,15), low = "lightblue", high = "darkblue")+
     xlab(expression(atop("NEC", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
     ylab(expression(atop("Proteinaceous","(RU)")))+
-    ggtitle("Model 7")+
+#    ggtitle("Model 7")+
     # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
     #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
     theme_minimal()+
-    theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom')
+    theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom',
+          legend.box = "horizontal")+
+    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5))
+  
+  # Model 7
+  R<-conditional_effects(fit_brms, "SilicateumolL", resp = "Proteinaceous", resolution = 1000)
+  R7a<-R$Proteinaceous.Proteinaceous_SilicateumolL %>% # back transform the scaled effects for the plot
+    mutate(estimate = estimate__*attr(ModelData$Proteinaceous,"scaled:scale")+attr(ModelData$Proteinaceous,"scaled:center"),
+           lower = lower__*attr(ModelData$Proteinaceous,"scaled:scale")+attr(ModelData$Proteinaceous,"scaled:center"),
+           upper = upper__*attr(ModelData$Proteinaceous,"scaled:scale")+attr(ModelData$Proteinaceous,"scaled:center")) %>%
+    mutate(SilicateumolL = SilicateumolL*attr (ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center")
+    )%>%
+    ggplot()+ # back trasform the log transformed data for better visual
+    geom_line(aes(x = exp(SilicateumolL), y = estimate), color = "grey", lwd = 1)+
+    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper),fill = "grey", linetype=1.5, alpha=0.3)+
+    geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = Tryptophan_Like +Tyrosine_Like, color = NEC.proxy)) +
+    xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
+    ylab(expression(atop("Proteinaceous","(RU)")))+
+  #  ggtitle("Model 7")+
+    coord_trans(x="log")+
+    scale_color_gradient2(low = "lightpink",
+                          mid = "gray88",
+                          high = "purple",
+                          midpoint = 0)+
+    # scale_x_continuous(breaks = c(0.2,1,5,10,25))+
+    #  scale_y_continuous(breaks = c(0,0.1,1,5,10,30))+
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5, size = 14), legend.position = 'bottom',
+          legend.box = "horizontal")+
+    guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5))
   
     ## bring them all together in patchwork
-  R<-(R2|R7)/(R3|R3a)/(R4|R4a)/(R5|R5a)/(R6|R6a)+
+  R<-(R1|R2)/(R3|R3a)/(R4|R4a)/(R5|R5a)/(R6|R6a)+(R7|R7a)+
     plot_annotation(tag_levels = "A")+
     #/(R6|R6b)+
     plot_layout(guides = "collect")&
