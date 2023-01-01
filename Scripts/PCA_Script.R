@@ -268,18 +268,22 @@ V_pca_Data_all<-Data %>%
 # scores plot
 p1<-V_pca_Data_all %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
-  geom_point(size = 2) +
+  
  # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   scale_shape_manual(values = c(1, 22,15,16))+
-  scale_colour_hue(l = 45)+
-  scale_fill_hue(l = 45)+
+  # scale_colour_hue(l = 45)+
+  # scale_fill_hue(l = 45)+
+  #
+  scale_colour_manual(values = c("#D64550","#EA9E8D"))+
+  scale_fill_manual(values = c("#D64550","#EA9E8D"))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0)+
-  labs(title = "Dry",
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0)+
+  geom_point(size = 2) +
+  labs(title = "Dry Season",
        x = paste0("PC1 ","(",perc.explained[1],"%)"),
        y = paste0("PC2 ","(",perc.explained[2],"%)"))+
   theme_bw()+
@@ -292,21 +296,26 @@ p1<-V_pca_Data_all %>%
 
 p1_wet<-V_pca_Data_all_wet %>%
   ggplot(aes(x = -PC1, y = -PC2, color = Tide, shape = TimeBlock))+
-  geom_point(size = 2) +
+  
   # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
-  coord_cartesian(xlim = c(-8, 8), ylim = c(-8, 8)) +
+  #
   scale_shape_manual(values = c(1, 22,15,16))+
-  scale_colour_hue(l = 45)+
-  scale_fill_hue(l = 45)+
+  #scale_colour_hue(l = 45)+
+  #scale_fill_hue(l = 45)+
+  scale_colour_manual(values = c("#D64550","#EA9E8D"))+
+  scale_fill_manual(values = c("#D64550","#EA9E8D"))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
-  labs(title = "Wet",
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(5, "mm"), con.cap = 0)+
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(-7, 5), ylim = c(-7, 7)) +
+  labs(title = "Wet Season",
        x = paste0("PC1 ","(",perc.explained_wet[1],"%)"),
        y = paste0("PC2 ","(",perc.explained_wet[2],"%)"))+
   theme_bw()+
+  scale_x_continuous(breaks = c(-4,0,4), limits = c(-7,7))+
   theme(legend.position = "none",
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -324,7 +333,9 @@ p2<-PC_loadings %>%
    # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
   #          label = PC_loadings$labels)+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  labs(color ="")+
+  labs(color ="",
+       x = paste0("PC1 ","(",perc.explained[1],"%)"),
+       y = paste0("PC2 ","(",perc.explained[2],"%)"))+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
    theme_bw()+
   theme(panel.grid.major = element_blank(), 
@@ -342,11 +353,12 @@ p2_wet<-PC_loadings_wet %>%
                arrow=arrow(length=unit(0.1,"cm")))+
   # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
   #          label = PC_loadings$labels)+
-  coord_cartesian(xlim = c(-8, 8), ylim = c(-6, 6)) +
+  coord_cartesian(xlim = c(-7, 5), ylim = c(-7, 7)) +
   labs(color ="",
-       x = "PC1",
-       y = "PC2")+
+       x = paste0("PC1 ","(",perc.explained_wet[1],"%)"),
+       y = paste0("PC2 ","(",perc.explained_wet[2],"%)"))+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
+  scale_x_continuous(breaks = c(-4,0,4), limits = c(-7,7))+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -364,7 +376,7 @@ VarariPCA<-(p1+p1_wet)/(p2+p2_wet)+
                                                                      margin = margin(t = 10, b = 20,
                                                                                      unit = "pt"))))
 
-ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.png"), width = 16, height = 16)
+ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 15, height = 15)
 
 ### Site level pca with ranges
 V_pca_Data_site<-Datalog %>%
@@ -555,17 +567,20 @@ C_pca_Data_all_wet<-Data %>%
 # scores plot
 p1c<-C_pca_Data_all %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
-  geom_point() +
+  
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   scale_shape_manual(values = c(1, 22,15,16))+
-  scale_colour_hue(l = 45)+
-  scale_fill_hue(l = 45)+
-  labs(title = "Dry",
+  scale_colour_manual(values = c("#16697A","#82C0CC"))+
+  scale_fill_manual(values = c("#16697A","#82C0CC"))+
+  # scale_colour_hue(l = 45)+
+  # scale_fill_hue(l = 45)+
+  labs(title = "Dry Season",
        x = paste0("PC1 ","(",perc.explainedC[1],"%)"),
        y = paste0("PC2 ","(",perc.explainedC[2],"%)"))+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
+  geom_point(size = 2) +
   theme_bw()+
   theme(legend.position = "none",
         panel.grid.major = element_blank(), 
@@ -576,17 +591,19 @@ p1c<-C_pca_Data_all %>%
 
 p1c_wet<-C_pca_Data_all_wet %>%
   ggplot(aes(x = PC1, y = -PC2, color = Tide, shape = TimeBlock))+
-  geom_point() +
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   scale_shape_manual(values = c(1, 22,15,16))+
-  scale_colour_hue(l = 45)+
-  scale_fill_hue(l = 45)+
-  labs(title = "Wet",
+  scale_colour_manual(values = c("#16697A","#82C0CC"))+
+  scale_fill_manual(values = c("#16697A","#82C0CC"))+
+  # scale_colour_hue(l = 45)+
+  # scale_fill_hue(l = 45)+
+  labs(title = "Wet Season",
        x = paste0("PC1 ","(",perc.explainedC_wet[1],"%)"),
        y = paste0("PC2 ","(",perc.explainedC_wet[2],"%)"))+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
-    alpha = .15, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
+  geom_point(size = 2) +
   theme_bw()+
   theme(legend.position = "none",
         panel.grid.major = element_blank(), 
@@ -617,7 +634,9 @@ p2c<-PC_loadingsC %>%
   #  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
   #        label = PC_loadingsC$labels)+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  labs(color = "")+
+  labs(color = "",
+        x = paste0("PC1 ","(",perc.explainedC[1],"%)"),
+       y = paste0("PC2 ","(",perc.explainedC[2],"%)"))+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -637,7 +656,9 @@ p2c_wet<-PC_loadingsC_wet %>%
   #  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
   #        label = PC_loadingsC$labels)+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
-  labs(color = "")+
+  labs(color = "",
+       x = paste0("PC1 ","(",perc.explainedC_wet[1],"%)"),
+       y = paste0("PC2 ","(",perc.explainedC_wet[2],"%)"))+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -656,7 +677,7 @@ CabralPCA<-(p1c+p1c_wet)/(p2c+p2c_wet)+
                                                                      margin = margin(t = 10, b = 20, 
                                                                                      unit = "pt"))))
 
-ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.png"), width = 16, height = 16)
+ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.pdf"), width = 15, height = 15)
 
 
 #### Add Cabral Site level here ####
@@ -1103,11 +1124,11 @@ ranges<-Data %>%
                             name == "pH" ~ "pH<sub>T</sub>",
                             name == "Lignin_Like" ~"Lignin Like",
                          #   name == "M_C" ~ "M:C",
-                            name == "Tyrosine_Like" ~ "Tyrosine Like",
-                            name == "Tryptophan_Like" ~ "Tryptophan Like",
+                            name == "Tyrosine_Like" ~ "Tyrosine-Like",
+                            name == "Tryptophan_Like" ~ "Tryptophan-Like",
                             name == "HIX"~"HIX",
-                            name == "MarineHumic_Like" ~ "Marine Humic Like",
-                            name == "VisibleHumidic_Like" ~ "Visible Humic Like",
+                            name == "MarineHumic_Like" ~ "Marine Humic-Like",
+                            name == "VisibleHumidic_Like" ~ "Visible Humic-Like",
                             name == "Ammonia_umolL" ~ "Ammonium",
                             name == "TA" ~ "Total Alkalinity",
                             name == "Phosphate_umolL" ~ "Phosphate",
@@ -1237,15 +1258,17 @@ ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 10
 
 cortest %>%
   left_join(ranges) %>% # join with the ranges
+  mutate(name = factor(name,levels = c("TA","pH","Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL","HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like","TempInSitu_seep"))) %>%
  # filter(Location == "Varari") %>%
-  filter(!name %in% c("HIX","M_C") )%>%
-  ggplot(aes(x = fct_reorder(nicenames, estimate),#y = 1,
-             y = c(rep(1,24),rep(1.8,24)),
+  filter(!name %in% c("HIX","M_C", "Lignin_Like") )%>%
+  ggplot(aes(x = fct_reorder(nicenames, as.numeric(name), .desc = TRUE),#y = 1,
+             y = c(rep(0.5,22),rep(1.5,22)),
+             #y = c(rep(1,24),rep(1.8,24)),
              color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
-  geom_richtext(aes(y = c(rep(1.4,24),rep(2.2,24)),
-                    label = range), size = 5, color = "black", fill = NA, label.colour = NA)+
+  # geom_richtext(aes(y = c(rep(1.4,24),rep(2.2,24)),
+  #                   label = range), size = 5, color = "black", fill = NA, label.colour = NA)+
 #  ylim (0.8,3)+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0, limits = c(-1,1))+
   scale_size(range = c(0.1,10))+
@@ -1260,7 +1283,8 @@ cortest %>%
        color = "Correlation with Salinity"
      #  title = "Correlation with Salinity"
        )+
-  scale_y_continuous(breaks = c(1,1.8), labels = c("Dry","Wet"), limits = c(0.8,2.5))+
+  scale_y_continuous(breaks = c(.5,1.5), labels = c("Dry Season","Wet Season"), limits = c(0,2))+
+                     #, limits = c(0.8,2.5))+
   theme(#axis.ticks.x = element_blank(),
       #  axis.text.x = element_blank(),
         panel.grid = element_blank(),
@@ -1271,11 +1295,13 @@ cortest %>%
       #  panel.grid.major.x = element_blank(),
       #  panel.grid.minor.x = element_blank(),
         legend.position = "bottom",
-        legend.key.width = unit(1, "cm")
+        legend.key.width = unit(1, "cm"),
+      strip.background = element_blank(),
+      strip.text = element_markdown(size = 14, face = "bold")
         )+
   facet_wrap(~Location, ncol = 2)
 
-ggsave(here("Output","CorrelationPlot_seepSalinityV.png"), height = 8, width = 16)
+ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 8)
 
 ### Pure Spring Water
 mean_spring<-Data %>%

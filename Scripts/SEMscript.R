@@ -516,7 +516,8 @@ CoefPlot<-AllCoefs%>%
   geom_errorbarh(aes(xmin = .lower, xmax = .upper), height = 0)+
   #scale_alpha_manual(values = c(0.2,1))+
   scale_shape_manual(values = c(1,16))+
-  scale_color_brewer(palette = "Set2")+
+  scale_color_manual(values = c("#16697A","#D64550"))+
+  #scale_color_brewer(palette = "Set2")+
   labs(
     x = NULL, y = NULL) +
   theme_bw() +
@@ -537,6 +538,7 @@ ggplot2::ggsave("Output/coefficientsAll.pdf", width = 12, height = 8, useDingbat
 
 ## Plot showing nitrate leading to net heterotrophy
 Cdata %>% filter(Plate_Seep == "Plate") %>%
+  mutate(Season = recode(Season, "Dry" = "Dry Season",  "Wet" = "Wet Season" )) %>%
   group_by(Location, CowTagID, Season) %>%
   summarise(meanNEP = mean(NEP.proxy, na.rm = TRUE),
             sumNEP = sum(NEP.proxy),
@@ -544,7 +546,8 @@ Cdata %>% filter(Plate_Seep == "Plate") %>%
             meanSi = mean(Silicate_umolL),
             maxSi = max(Silicate_umolL, na.rm = TRUE)) %>%
   drop_na()%>%
-  ggplot(aes(x = maxSi, y = sumNEP, color = Season, fill = Season))+
+  ggplot(aes(x = maxSi, y = sumNEP, color =  Season, 
+             fill =  Season))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.5)+
   geom_smooth(method = "lm", formula = "y~log(x)")+
@@ -552,16 +555,39 @@ Cdata %>% filter(Plate_Seep == "Plate") %>%
   facet_wrap(~Location, scales = "free_x")+
   xlab(expression(atop("Max Silicate", paste("(",mu,"mol L"^-1,")"))))+
   ylab(expression(atop("Integrated NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
-  scale_color_manual(values = c("#800000","#767676"))+
-  scale_fill_manual(values = c("#800000","#767676"))+
+  geom_text(data = data.frame(
+    label = c("Net Autotrophic", ""),
+    Season = c("Dry Season","Wet Season"),
+    Location   = c("Cabral","Varari"),
+    x     = c(2.5,2.5),
+    y     = c(10,10)
+  ), aes(x=x, y=y, label = label), color = "black", size = 4)+
+  geom_text(data = data.frame(
+    label = c("Net Heterotrophic", ""),
+    Season = c("Dry Season","Wet Season"),
+    Location   = c("Cabral","Varari"),
+    x     = c(2.5,2.5),
+    y     = c(-10,-10)
+  ), aes(x=x, y=y, label = label), color = "black", size = 4)+
+  
+  # scale_color_manual(values = c("#800000","#767676"))+
+  # scale_fill_manual(values = c("#800000","#767676"))+
+  # scale_color_manual(values = c("#16697A","#82C0CC","#D64550","#EA9A8D"))+
+  # scale_fill_manual(values = c("#16697A","#82C0CC","#D64550","#EA9A8D"))+
+  # 
+  scale_color_manual(values = c("grey60","black"))+
+  scale_fill_manual(values = c("grey60","black"))+
   theme_bw()+
   theme(legend.title = element_blank(),
-        axis.text.y  = element_text(hjust = 0),
-        axis.ticks.y = element_blank(),
-        legend.position = "bottom",
-        legend.text=element_text(size=14),
+        #axis.text.y  = element_text(hjust = 0),
+        #axis.ticks.y = element_blank(),
+        legend.position = c(0.85, 0.1),
+        legend.text=element_text(size=12),
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12),
         strip.background = element_blank(),
-        strip.text = element_text(size = 14, face = "bold"))
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank() 
+          )
 ggsave(here("Output","heterotrophic.pdf"),width = 7, height = 5)
