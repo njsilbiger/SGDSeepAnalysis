@@ -54,7 +54,8 @@ pHmod<-bf(pH~ NEP.proxy*SilicateumolL, family = "student")
 
 NECmod<-bf(NEC.proxy~pH+Temperature, family = "student")
 #Humicsmod<-bf(Humics~(Day.Night*NEP.proxy)+SilicateumolL, family = "student")
-Humicsmod<-bf(Humics~Day.Night*NEP.proxy*SilicateumolL, family = "student")
+#Humicsmod<-bf(Humics~Day.Night*NEP.proxy*SilicateumolL, family = "student")
+Humicsmod<-bf(Humics~(Day.Night*NEP.proxy)+SilicateumolL, family = "student")
 Protmod<-bf(Proteinaceous~NEC.proxy+SilicateumolL, family = "student")
 
 # Function to run Bayesian SEM and make the posterior predictive checks and plot marginal effects
@@ -339,16 +340,16 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
            shape = guide_legend(title = "Day/Night", title.position="top", title.hjust = 0.5)) 
   
   # Humics~NEP.proxy*Day.Night+Silicate_umolL
-  R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "Humics", resolution = 1000)
-  R6a<-R$Humics.Humics_SilicateumolL %>% # back transform the scaled effects for the plot
+  R<-conditional_effects(fit_brms, "SilicateumolL", resp = "Humics", resolution = 1000)
+  R6a<-R$`Humics.Humics_SilicateumolL` %>% # back transform the scaled effects for the plot
     mutate(estimate = estimate__*attr(ModelData$Humics,"scaled:scale")+attr(ModelData$Humics,"scaled:center"),
            lower = lower__*attr(ModelData$Humics,"scaled:scale")+attr(ModelData$Humics,"scaled:center"),
            upper = upper__*attr(ModelData$Humics,"scaled:scale")+attr(ModelData$Humics,"scaled:center")) %>%
     mutate(SilicateumolL = SilicateumolL*attr (ModelData$SilicateumolL,"scaled:scale")+attr(ModelData$SilicateumolL,"scaled:center")
     )%>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate, lty = factor(NEP.proxy)), lwd = 1, color = 'grey')+
-    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper, lty = factor(NEP.proxy)),  alpha=0.3, fill = 'grey')+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate), lwd = 1, color = 'grey')+
+    geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper),  alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = VisibleHumidic_Like +MarineHumic_Like, color = NEP.proxy)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
     ylab(expression(atop("Humics","(RU)")))+
@@ -436,6 +437,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
 }
 
 # Run the SEM
+set.seed(11) # so we get the same answer every time
 V_Dry_fit<-RunSEM(site ="Varari", season = "Dry")
 V_Wet_fit<-RunSEM(site ="Varari", season = "Wet")
 C_Dry_fit<-RunSEM(site ="Cabral", season = "Dry")
@@ -506,9 +508,12 @@ IndivPlots("Varari","Wet")
 IndivPlots("Cabral","Wet")
 IndivPlots("Cabral","Dry")
 
+write_csv(AllCoefs, here("Data","Coefficients.csv")) # export the coefficients
+
 ### Plot all together
 #Make the plot
 CoefPlot<-AllCoefs%>%
+  mutate(Season = recode(Season, Dry = "Dry Season", Wet = "Wet Season")) %>%
   # ggplot(aes(x = value, y = reorder(independent, value), shape = sig, color = Site)) +  # note how we used `reorder()` to arrange the coefficients
   ggplot(aes(x = value, y = independent, shape = sig, color = Location)) +  # note 
   geom_vline(xintercept = 0, alpha = 1/10, color = 'firebrick4') +
