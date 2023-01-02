@@ -295,19 +295,37 @@ AllCabral<-bind_rows(AllCabral_Dry, AllCabral_Wet) %>%
 ## Add in sampling times for Varari and Cabral
 Varari_sample<-tibble(datetime = ymd_hms(c("2021-08-05 11:57:00", "2021-08-05 00:00:00",
                          "2021-08-08 18:30:00", "2021-08-06 06:40:00", "2021-08-08 07:30:00",
+                         "2021-08-06 19:00:00", "2021-08-04 18:45:00", "2021-08-04 23:51:00",
+                         "2021-08-05 02:51:00", "2021-08-05 06:45:00", "2021-08-05 08:51:00",
+                         "2021-08-06 08:30:00",
                          "2022-03-21 5:00:00","2022-03-21 8:00:00","2022-03-21 11:00:00",
                          "2022-03-21 14:00:00","2022-03-21 17:00:00","2022-03-21 20:00:00",
                          "2022-03-21 21:45:00","2022-03-21 23:00:00","2022-03-22 2:00:00",
                          "2022-03-28 17:00:00","2022-03-28 18:00:00","2022-03-28 19:00:00",
                          "2022-03-29 7:00:00","2022-03-29 8:00:00","2022-03-29 9:00:00",
-                         "2022-03-29 11:00:00")))
+                         "2022-03-29 11:00:00")),
+                      Plate_Seep = c("All Sites", "All Sites",
+                                     "All Sites", "All Sites", "All Sites", "Seep Only","Seep Only", "Seep Only", "Seep Only",
+                                     "Seep Only", "Seep Only", "Seep Only","Seep Only","All Sites","Seep Only",
+                                     "All Sites","Seep Only","All Sites", "Seep Only","Seep Only","All Sites",
+                                     "Seep Only","Seep Only","Seep Only", "Seep Only","Seep Only","Seep Only","Seep Only"))
 
 
 Cabral_sample<-tibble(datetime =ymd_hms(c("2021-08-09 07:00:00", "2021-08-09 13:00:00",
                          "2021-08-09 01:10:00","2021-08-09 19:00:00","2021-08-10 07:00:00",
-                         "2022-03-30 04:00:00", "2022-03-30 07:00:00", "2022-03-30 10:00:00", 
-                         "2022-03-30 13:00:00", "2022-03-30 16:00:00", "2022-03-30 19:00:00",
-                         "2022-03-30 22:00:00", "2022-03-31 01:00:00")))
+                         "2021-08-09 04:00:00", "2021-08-09 07:00:00","2021-08-09 10:00:00",
+                         "2021-08-09 13:00:00", "2021-08-09 16:10:00","2021-08-09 19:00:00",
+                         "2021-08-09 22:20:00", "2021-08-10 01:20:00", "2021-08-10 04:20:00",
+                         "2021-08-10 07:00:00","2022-03-30 04:00:00", "2022-03-30 07:00:00", 
+                         "2022-03-30 10:00:00", "2022-03-30 13:00:00", "2022-03-30 16:00:00", 
+                         "2022-03-30 19:00:00", "2022-03-30 22:00:00", "2022-03-31 01:00:00")),
+                      Plate_Seep = c("All Sites", "All Sites",
+                                     "All Sites","All Sites","All Sites",
+                                     "All Sites","Seep Only", "Seep Only", "Seep Only",
+                         "Seep Only","Seep Only","Seep Only","Seep Only", "Seep Only","Seep Only",
+                                     "Seep Only", "All Sites", "Seep Only", 
+                                     "All Sites", "Seep Only", "All Sites",
+                                     "Seep Only", "All Sites"))
 
 ## Simple plot
 
@@ -338,40 +356,91 @@ ggsave(here('Output',"Varari_timeseries.pdf"), width = 8, height = 10)
 AllVarari %>%
   filter(date >= ymd("2021-08-04") & date <= ymd("2021-08-09") |
            date >= ymd("2022-03-21") & date <= ymd("2022-03-30"))%>%
-  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
-  ggplot(aes(x = date, y = Values))+
+  select(Site, Season, date, PAR = PAR_calc, Depth, Salinity = Salinity_psu, Temperature = TempInSitu, pH, DO = DO_mg_L) %>%
+  mutate(Hour = ymd_hm(paste(year(date),month(date), day(date), hour(date),"00"))) %>% # average across hour
+  group_by(Site, Season, Hour) %>%
+  summarise_at(vars(PAR:DO), .funs = function(x) mean(x, na.rm = TRUE)) %>% 
+  ungroup()%>%
+  pivot_longer(cols = PAR:DO, names_to = "Params", values_to = "Values") %>%
+  mutate(Params = factor(Params, levels = c("PAR", "Depth", "Salinity", "Temperature", "pH", "DO"))) %>%
+  ggplot(aes(x = Hour, y = Values))+
  # geom_point()+ # since radon is only every 6 mins the line doesnt work... need to average out above
-  geom_line()+
-  geom_vline(data = Varari_sample, aes(xintercept = datetime), color = "red")+
-  facet_wrap(~Params*Season, scales = "free", ncol = 2)+
+  geom_vline(data = Varari_sample, aes(xintercept = datetime, lty = Plate_Seep), color = "grey", size = 0.5)+
+  geom_line(linewidth = 1.2, color = "#D64550")+
+  facet_wrap(~Params*Season, scales = "free", ncol = 2,
+             strip.position = "left", 
+             labeller = as_labeller(c(Wet = "", Dry = "",
+                                      PAR = "PAR", Depth = "Depth \n(m)", Salinity = "Salinity", Temperature = "Temperature \n(C)", pH ="pH", DO ="DO \n(mg L-1)"))
+             )+
+  facetted_pos_scales( # make y limits the same by panel
+    y = rep(list(
+      scale_y_continuous(limits = c(0, 1500)),
+      scale_y_continuous(limits = c(0.2, 1.2)),
+      scale_y_continuous(limits = c(25, 41)),
+      scale_y_continuous(limits = c(26, 30)),
+      scale_y_continuous(limits = c(7.0, 8.15)),
+      scale_y_continuous(limits = c(0, 16))
+    ), each = 2))+
   theme_bw() +
-  labs(title = "Varari Sled")
+  labs(title = "Varari",
+       lty = " ",
+       x =" ",
+       y = " ")+
+  theme(panel.grid = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        legend.position = "bottom",
+        plot.title = element_text(size = 14, hjust = 0.5),
+        axis.text = element_text(size = 10),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(0, "lines"))
+ggsave(here("Output","Varari_ts.pdf"), width = 8, height = 8)
 
 # Just during sampling times
 AllCabral %>%
   filter(date >= ymd("2021-08-09"), date <= ymd("2021-08-10")|
-           date >= ymd("2022-03-29"), date <= ymd("2022-04-01")  )%>%
-  pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
-  ggplot(aes(x = date, y = Values))+
-  geom_line()+
-#  geom_point()+
-  geom_vline(data = Cabral_sample, aes(xintercept = datetime), color = "red")+
-  facet_wrap(~Params*Season, scales = "free", ncol = 2)+
+           date >= ymd("2022-03-29"), date <= ymd("2022-04-01"))%>%
+  select(Site, Season, date, PAR = PAR_calc, Depth, Salinity = Salinity_psu, Temperature = TempInSitu, pH, DO = DO_mg_L) %>%
+  mutate(Hour = ymd_hm(paste(year(date),month(date), day(date), hour(date),"00"))) %>% # average across hour
+  group_by(Site, Season, Hour) %>%
+  summarise_at(vars(PAR:DO), .funs = function(x) mean(x, na.rm = TRUE)) %>% 
+  ungroup()%>%
+  pivot_longer(cols = PAR:DO, names_to = "Params", values_to = "Values") %>%
+  mutate(Params = factor(Params, levels = c("PAR", "Depth", "Salinity", "Temperature", "pH", "DO"))) %>%
+  ggplot(aes(x = Hour, y = Values))+
+  # geom_point()+ # since radon is only every 6 mins the line doesnt work... need to average out above
+  geom_vline(data = Cabral_sample, aes(xintercept = datetime, lty = Plate_Seep), color = "grey", size = 0.5)+
+  geom_line(linewidth = 1.2, color = "#16697A")+
+  facet_wrap(~Params*Season, scales = "free", ncol = 2,
+             strip.position = "left", 
+             labeller = as_labeller(c(Wet = "", Dry = "",
+                                      PAR = "PAR", Depth = "Depth \n(m)", Salinity = "Salinity", Temperature = "Temperature \n(C)", pH ="pH", DO ="DO \n(mg L-1)"))
+  )+
   facetted_pos_scales( # make y limits the same by panel
     y = rep(list(
-      scale_y_continuous(limits = c(0, 1)),
-      scale_y_continuous(limits = c(0, 18)),
-      scale_y_continuous(limits = c(0, 2000)),
-      scale_y_continuous(limits = c(7.6, 8.2)),
-      scale_y_continuous(limits = c(0, 6)),
-      scale_y_continuous(limits = c(34, 40)),
-      scale_y_continuous(limits = c(26, 32))
-    ), each = 2)
-  )+
+      scale_y_continuous(limits = c(0, 1000)),
+      scale_y_continuous(limits = c(0, 0.8)),
+      scale_y_continuous(limits = c(35, 39)),
+      scale_y_continuous(limits = c(27, 31)),
+      scale_y_continuous(limits = c(7.7, 8.2)),
+      scale_y_continuous(limits = c(0, 15))
+    ), each = 2))+
   theme_bw() +
-  labs(title = "Cabral Sled")
-ggsave(here('Output',"Cabral_timeseries.pdf"), width = 8, height = 10)
-
+  labs(title = "Cabral",
+       lty = " ",
+       x =" ",
+       y = " ")+
+  theme(panel.grid = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        legend.position = "bottom",
+        plot.title = element_text(size = 14, hjust = 0.5),
+        axis.text = element_text(size = 10),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(0, "lines"))
+ggsave(here("Output","Cabral_ts.pdf"), width = 8, height = 8)
+  
+ 
 #Cabral all
 AllCabral %>%
   pivot_longer(cols = TempInSitu:PAR_calc, names_to = "Params", values_to = "Values") %>%
