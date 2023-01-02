@@ -315,7 +315,7 @@ Cabral_sample<-tibble(datetime =ymd_hms(c("2021-08-09 07:00:00", "2021-08-09 13:
                          "2021-08-09 01:10:00","2021-08-09 19:00:00","2021-08-10 07:00:00",
                          "2021-08-09 04:00:00", "2021-08-09 07:00:00","2021-08-09 10:00:00",
                          "2021-08-09 13:00:00", "2021-08-09 16:10:00","2021-08-09 19:00:00",
-                         "2021-08-09 22:20:00", "2021-08-10 01:20:00", "2021-08-10 04:20:00",
+                         "2021-08-09 22:00:00", "2021-08-10 01:20:00", "2021-08-10 04:20:00",
                          "2021-08-10 07:00:00","2022-03-30 04:00:00", "2022-03-30 07:00:00", 
                          "2022-03-30 10:00:00", "2022-03-30 13:00:00", "2022-03-30 16:00:00", 
                          "2022-03-30 19:00:00", "2022-03-30 22:00:00", "2022-03-31 01:00:00")),
@@ -394,12 +394,12 @@ AllVarari %>%
         axis.text = element_text(size = 10),
         strip.text.y = element_text(size = 12),
         panel.spacing = unit(0, "lines"))
-ggsave(here("Output","Varari_ts.pdf"), width = 8, height = 8)
+ggsave(here("Output","Varari_ts.pdf"), width = 10, height = 8)
 
 # Just during sampling times
 AllCabral %>%
-  filter(date >= ymd("2021-08-09"), date <= ymd("2021-08-10")|
-           date >= ymd("2022-03-29"), date <= ymd("2022-04-01"))%>%
+  filter(date >= ymd("2021-08-09"), date < ymd_hm("2021-08-09 23:00")|
+           date >= ymd("2022-03-29"), date <= ymd_hm("2022-03-31 06:00"))%>%
   select(Site, Season, date, PAR = PAR_calc, Depth, Salinity = Salinity_psu, Temperature = TempInSitu, pH, DO = DO_mg_L) %>%
   mutate(Hour = ymd_hm(paste(year(date),month(date), day(date), hour(date),"00"))) %>% # average across hour
   group_by(Site, Season, Hour) %>%
@@ -438,7 +438,7 @@ AllCabral %>%
         axis.text = element_text(size = 10),
         strip.text.y = element_text(size = 12),
         panel.spacing = unit(0, "lines"))
-ggsave(here("Output","Cabral_ts.pdf"), width = 8, height = 8)
+ggsave(here("Output","Cabral_ts.pdf"), width = 10, height = 8)
   
  
 #Cabral all
