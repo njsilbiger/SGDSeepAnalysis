@@ -826,7 +826,7 @@ R1 <- ggplot()+
         axis.title = element_blank(),
         axis.ticks = element_blank())
 
-AllPlot<-(R1|NNSi)/(NEPNN|NEPTemp)/(NEPpH|SipH)/(NECpH|NECTemp)/(NEPHumics|SiHumics)+(NECProt|SiProt)+
+AllPlot<-(CoefPlot|NNSi)/(NEPNN|NEPTemp)/(NEPpH|SipH)/(NECpH|NECTemp)/(NEPHumics|SiHumics)+(NECProt|SiProt)+
   plot_annotation(tag_levels = "A")+
   #/(R6|R6b)+
   plot_layout(guides = "collect")&
