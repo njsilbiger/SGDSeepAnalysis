@@ -83,7 +83,8 @@ Data <- Data %>%
   left_join(SiteDepth) %>%
  # select(!c(SeepCode:LoggerID,Top_Plate_ID:Jamie_Plate_ID)) %>% # remove unnecessary columns
   select(!c(Top_Plate_ID:Jamie_Plate_ID)) %>%
-  mutate(residence_time_h = (1/CurrentSpeed_m_s_av)*reeflength*(1/60),
+  mutate(residence_time_h = (1/(CurrentSpeed_m_s*60))*reeflength,
+         #(1/CurrentSpeed_m_s_av)*reeflength*(1/60)
         # residence_time_h = (1/CurrentSpeed_m_s)*dist_to_seep_m*(1/60),  # calculate residence time of water moving from seep to cowtagID in hours
          rho = swRho(salinity = Salinity, temperature = Temperature, pressure = 0, eos="unesco")) # calculate seawater density in kg/m3
 
@@ -119,7 +120,7 @@ Cdata<-Data %>%
 CO2<-carb(flag=8, Cdata$pH, Cdata$TA/1000000, S=Cdata$Salinity, 
           T=Cdata$Temperature, Patm=1, P=0, 
        #   Pt=Cdata$Phosphate_umolL/1000000, Sit=Cdata$Silicate_umolL/1000000, 
-          k1k2="x", kf="x", ks="d", pHscale="T", b="u74", gas="potential")
+          k1k2="w14", kf="dg", ks="d", pHscale="T", b="u74", gas="potential")
 
 #TA is divided by 1000 because all calculations are in mol/kg in the seacarb package
 
@@ -161,14 +162,19 @@ Vend_spring<-Cdata %>%
   select(Location,  TA_Spring = TA,DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
   slice(1)
 
-Vend_spring <- bind_rows(Vend_spring, Vend_spring) %>% # use the same end member for dry and wet
-  mutate(Season = c("Dry","Wet"))
+# Vend_spring <- bind_rows(Vend_spring, Vend_spring) %>% # use the same end member for dry and wet
+#   mutate(Season = c("Dry","Wet"))
   
 
-Cend_spring<-Cdata %>%
-  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID %in% c("CSPRING", "CSPRING_ROAD") )%>% # was CSPRING_ROAD prior
-  select(Location,Season, TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
-  slice(1:2)
+Cend_spring<-Cdata %>% 
+  # filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID %in% c("CSPRING", "CSPRING_ROAD") )%>%
+  filter(Plate_Seep == "Spring", Location == "Cabral", CowTagID %in% c("CSPRING_ROAD") )%>% # was CSPRING_ROAD prior
+  select(
+    Location,
+  #  Season, 
+    TA_Spring = TA, DIC_Spring = DIC, Salinity_Spring = Salinity, Silicate_umolL_Spring = Silicate_umolL)%>%
+  slice(1)
+# slice(1:2)
 
 Spring<-bind_rows(Vend_spring, Cend_spring)
 ## Calculate endmembers for the "ocean" which will be the average salinity or silicate during high tide by season
@@ -176,13 +182,16 @@ Spring<-bind_rows(Vend_spring, Cend_spring)
 endmembers<- Cdata %>%
   filter(Plate_Seep == "Plate")%>%
   drop_na(Silicate_umolL)%>%
-   group_by(Location, Season, Tide) %>%
+   group_by(Location) %>%
+ # group_by(Location, Season, Tide) %>%
   # summarise_at(vars(Salinity, Silicate_umolL), .funs = list(median)) %>%
    summarise_at(vars(Salinity, Silicate_umolL), .funs = list(min, max)) %>%
-   filter(Tide == "High") %>%
+  # filter(Tide == "High") %>%
    rename(Salinity_High = Salinity_fn2, Silicate_umolL_High = Silicate_umolL_fn1) %>%
-   select(Location, Season ,Salinity_High, Silicate_umolL_High) %>%
-   left_join(Spring) # bring in the spring data
+   select(Location, Salinity_High, Silicate_umolL_High) %>%
+   left_join(Spring) %>% # bring in the spring data
+  mutate(Salinity_Ocean = 35.972,
+         Silicate_umolL_Ocean = 0.965)
 
 
 Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to make it easier to calculate
@@ -195,9 +204,17 @@ Cdata <- left_join(Cdata, endmembers)  # add the endmemebers to the dataframe to
 
 # some plots of the relationship betwen TA, DIC, NN, and PO versus salinity at the seep
 Cdata %>%
-  filter(Plate_Seep == "Seep"| Plate_Seep == "Spring") %>% 
+  filter(Plate_Seep == "Seep") %>% 
+ # filter( TA <5000 & TA >1500) %>% # remove the road samples
+  ggplot(aes(x = Salinity, y = TA))+
+  geom_point(aes(color = Season))+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scale = "free")
+
+Cdata %>%
+  filter(Plate_Seep == "Seep") %>% 
   filter( TA <5000 & TA >1500) %>% # remove the road samples
-  ggplot(aes(x = Salinity, y = TA, color = Season))+
+  ggplot(aes(x = Salinity, y = DIC, color = Season))+
   geom_point(aes(color = Season))+
   geom_smooth(method = "lm")+
   facet_wrap(~Location, scale = "free")
@@ -265,8 +282,11 @@ Cdata <- Cdata %>% # add the predicted mixing line
   #                                    Location  == "Cabral" & Season == "Dry" ~Salinity*CcoDIC$Season[1,2]+CcoDIC$Season[1,1],
   #                                    Location  == "Cabral" & Season == "Wet" ~Salinity*CcoDIC$Season[2,2]+CcoDIC$Season[2,1]
   #         )) %>%
-   mutate(TA.mix = TA+(TA - TA_Spring)*((Silicate_umolL - Silicate_umolL_High)/(Silicate_umolL_Spring - Silicate_umolL)), # account for SGD mixing
-          DIC.mix = DIC+(DIC - DIC_Spring)*((Silicate_umolL - Silicate_umolL_High)/(Silicate_umolL_Spring - Silicate_umolL))                                  
+    mutate(TA.mix = TA+(TA - TA_Spring)*((Silicate_umolL - .965)/(Silicate_umolL_Spring - Silicate_umolL)), # account for SGD mixing
+           DIC.mix = DIC+(DIC - DIC_Spring)*((Silicate_umolL - .965)/(Silicate_umolL_Spring - Silicate_umolL)) 
+
+  # mutate(TA.mix = TA+(TA - TA_Spring)*((Salinity - 35.972)/(Salinity_Spring - Salinity)), # account for SGD mixing
+  #                DIC.mix = DIC+(DIC - DIC_Spring)*((Salinity - 35.972)/(Salinity_Spring - Salinity))           
            ) 
 
 
@@ -284,8 +304,16 @@ crestwater<-Cdata %>%
   #group_by(Location, Day_Night) %>%
            #, Day_Night, Tide) %>%
   summarise(TA.offshore = mean(TA, na.rm = TRUE),
-            DIC.offshore = mean(DIC, na.rm = TRUE)) %>%
+            DIC.offshore = mean(DIC, na.rm = TRUE),
+            Salinity.offshore = mean(Salinity, na.rm = TRUE),
+            Silicate_umolL.offshore = mean(Silicate_umolL, na.rm = TRUE)) %>%
   drop_na()
+
+# Data from Global Ocean Data Project
+#GLODAPv2 Merged Dataset GLODAP Olsen, A., R. M. Key, S. van Heuven, S. K. Lauvset, A. Velo, X. Lin, C. Schirnick, A. Kozyr, T. Tanhua, M. Hoppema, S. Jutterström, R. Steinfeldt, E. Jeansson, M. Ishii, F. F. Pérez and T. Suzuki. The Global Ocean Data Analysis Project version 2 (GLODAPv2) – an internally consistent data product for the world ocean, Earth Syst. Sci. Data, 8, 297–323, 2016, (doi:10.5194/essd-8-297-2016).
+carb(flag = 8, var1 = 8.134,var2 = 2364.613/1000000, S = 35.972, T = 25, Sit = .965/1000000, pHscale = "T", k1k2 = "x", b = "u74", kf = "dg", gas = "potential", ks = "d", P = 0)
+
+OpenOcean<-tibble(TA_ocean = 2364.613, DIC_ocean = 1994.888, Si_ocean = 0.965, pH_ocean = 8.134, Temperature_ocean = 28.679)
 
 Cdata<-Cdata %>%
   left_join(incoming) %>%
@@ -297,7 +325,9 @@ Cdata<-Cdata %>%
         mutate(
           # TA.diff = TA.mix- TA,
           # DIC.diff = DIC.mix - DIC,
+         # TA.diff = OpenOcean$TA_ocean - TA.mix,
           TA.diff = TA.offshore - TA.mix, #TA_incom --- take average from offshore water 2360
+        # DIC.diff = OpenOcean$DIC_ocean - DIC.mix,
           DIC.diff = DIC.offshore - DIC.mix, # DIC_income 2000
           #  NN.mix = ifelse(Location  == "Varari",Salinity*VcoNN[2]+VcoNN[1],Salinity*CcoNN[2]+CcoNN[1]),
          # NN.diff =  NN.mix - NN_umolL,
@@ -465,6 +495,23 @@ Cdata %>%
   #  geom_vline(xintercept = 0)+
   geom_smooth(method = "lm")+
   facet_wrap(~Location*Season*Tide, scales = "free")
+
+Cdata %>%
+  anti_join(remove_varari)%>%
+  anti_join(remove_cabral)%>%
+  filter(Plate_Seep == "Plate") %>%
+  group_by(Location, Season, CowTagID) %>%
+  summarise(pH = mean(pH, na.rm = TRUE),
+            NEC.proxy = mean(NEC.proxy, na.rm = TRUE),
+            si = mean(Silicate_umolL, na.rm = TRUE)) %>%
+  drop_na(NEC.proxy)%>%
+  ggplot(aes(x = si, y = NEC.proxy, color = Season))+
+  geom_point()+
+  #  geom_hline(yintercept = 0)+
+  #  geom_vline(xintercept = 0)+
+  geom_smooth(method = "lm")+
+  facet_wrap(~Location, scales = "free")
+
 
 Cdata %>%
   anti_join(remove_varari)%>%

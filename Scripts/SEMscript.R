@@ -505,7 +505,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
 }
 
 # Run the SEM
-set.seed(11) # so we get the same answer every time
+set.seed(6) # so we get the same answer every time
 V_Dry_fit<-RunSEM(site ="Varari", season = "Dry")
 V_Wet_fit<-RunSEM(site ="Varari", season = "Wet")
 C_Dry_fit<-RunSEM(site ="Cabral", season = "Dry")
@@ -740,7 +740,7 @@ SipH<-Allfits %>%
   filter(modname=="pH~Silicate*NEP") %>%
   mutate(effect2__ = as.numeric(as.character(effect2__)),
     effect2 = case_when(effect2__ > 0.69 ~ "High NEP",
-                             effect2__ < 0.69 & effect2__ > - 0.32 ~ "Low NEP",
+                             effect2__ < 0.69 & effect2__ >= - 0.32 ~ "Low NEP",
                              effect2__ < -0.32 ~ "High Net Respiration"),
     effect2 = factor(effect2, levels = c("High NEP","Low NEP","High Net Respiration"))) %>%
   ggplot(aes(x = exp(SilicateumolL), y = estimate, color = Location, lty = Season))+
