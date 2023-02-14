@@ -22,7 +22,7 @@ library(htmlTable)
 #Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC.csv")
 Data<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/August2021/Allbiogeochemdata_QC2.csv") %>% mutate(Season = "Dry")
 
-Data_march<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/Allbiogeochemdata_QC_march.csv")%>% mutate(Season = "Wet") %>%
+Data_march<-read_csv("https://raw.githubusercontent.com/njsilbiger/MooreaSGD_site-selection/main/Data/March2022/Allbiogeochemdata_QC_march_fdom2.csv")%>% mutate(Season = "Wet") %>%
   mutate(DateTime = mdy_hms(paste(Date,as.character(Time))))
 
 ## Load the turb nutrient data
