@@ -187,19 +187,35 @@ V_pca_Data<-Datalog %>%
   select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like,TA)%>%
   drop_na()
 
+V_pca_Data_both<-Datalog %>%
+   anti_join(remove_vararilog)%>%
+  filter(Location == "Varari", Plate_Seep=="Plate") %>%
+  #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
+  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+  group_by(Season)%>%
+  mutate_all(.funs = scale)%>% # scale by season
+  drop_na() %>%
+  ungroup()%>%
+  select(-Season)
+
 # Run the PCA
 pca_V <- prcomp(V_pca_Data, scale. = TRUE, center = TRUE)
 pca_V_wet <- prcomp(V_pca_Data_wet, scale. = TRUE, center = TRUE)
+pca_V_both <- prcomp(V_pca_Data_both)
+
 
 #pca_V <- prcomp(V_pca_Data, scale. = TRUE, center = TRUE)
 
 # calculate percent explained by each PC
 perc.explained<-round(100*pca_V$sdev/sum(pca_V$sdev),1)
 perc.explained_wet<-round(100*pca_V_wet$sdev/sum(pca_V_wet$sdev),1)
+perc.explained_both<-round(100*pca_V_both$sdev/sum(pca_V_both$sdev),1)
 
 # Extract the scores and loadings
 PC_scores <-as_tibble(pca_V$x[,1:2])
 PC_scores_wet <-as_tibble(pca_V_wet$x[,1:2])
+PC_scores_both <-as_tibble(pca_V_both$x[,1:2])
+
 
 PC_loadings<-as_tibble(pca_V$rotation) %>%
   bind_cols(labels = rownames(pca_V$rotation))%>%
@@ -249,6 +265,31 @@ PC_loadings_wet<-as_tibble(pca_V_wet$rotation) %>%
                         labels == "Silicate_umolL" ~ "Silicate",
                         labels == "Salinity" ~"Salinity"))
 
+
+PC_loadings_both<-as_tibble(pca_V_both$rotation) %>%
+  bind_cols(labels = rownames(pca_V_both$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels %in% c("pH","TA") ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like")~"fDOM"
+  ),
+  nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        #   labels == "Lignin_Like" ~"Lignin Like",
+                        #    labels == "M_C" ~ "M:C",
+                        labels == "Tyrosine_Like" ~ "Tyrosine Like",
+                        labels == "Tryptophan_Like" ~ "Tryptophan Like",
+                        labels == "HIX"~"HIX",
+                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humic Like",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity"))
+
 # Put it with all the original data
 V_pca_Data_all_wet<-Data %>%
   anti_join(remove_varari) %>%
@@ -264,6 +305,14 @@ V_pca_Data_all<-Data %>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
   drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
   bind_cols(PC_scores)
+
+
+V_pca_Data_all_both<-Data %>%
+  anti_join(remove_varari)%>%
+  #anti_join(remove2)%>%
+  filter(Location == "Varari", Plate_Seep=="Plate") %>%
+  drop_na(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
+  bind_cols(PC_scores_both)
 
 # scores plot
 p1<-V_pca_Data_all %>%
@@ -324,6 +373,35 @@ p1_wet<-V_pca_Data_all_wet %>%
         plot.title = element_text(hjust = 0.5, size = 18))
 
 
+p1_both<-V_pca_Data_all_both %>%
+  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
+  
+  # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  scale_shape_manual(values = c(1, 22,15,16))+
+  # scale_colour_hue(l = 45)+
+  # scale_fill_hue(l = 45)+
+  #
+  scale_colour_manual(values = c("#D64550","#EA9E8D"))+
+  scale_fill_manual(values = c("#D64550","#EA9E8D"))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_vline(xintercept = 0, lty = 2)+
+  ggforce::geom_mark_ellipse(
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0)+
+  geom_point(size = 2) +
+  labs(
+       x = paste0("PC1 ","(",perc.explained_both[1],"%)"),
+       y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        plot.title = element_text(hjust = 0.5, size = 18))+
+  facet_wrap(~Season)
+
 # loadings plot 
 p2<-PC_loadings %>%
   ggplot(aes(x=PC1, y=PC2, label=nicenames, color = groupings))+
@@ -369,6 +447,29 @@ p2_wet<-PC_loadings_wet %>%
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16))
 
+
+p2_both<-PC_loadings_both %>%
+  ggplot(aes(x=PC1, y=PC2, label=nicenames, color = groupings))+
+  geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA) +
+  geom_segment(data = PC_loadings_both, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),size = 1.2,
+               arrow=arrow(length=unit(0.1,"cm")))+
+  # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
+  #          label = PC_loadings$labels)+
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  labs(color ="",
+       x = paste0("PC1 ","(",perc.explained_both[1],"%)"),
+       y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.75, 0.85),
+        legend.text = element_markdown(size = 16),
+        legend.key.size = unit(1, 'cm'),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
+
+
 VarariPCA<-(p1+p1_wet)/(p2+p2_wet)+ 
   patchwork::plot_annotation(#"Varari Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), 
@@ -377,6 +478,17 @@ VarariPCA<-(p1+p1_wet)/(p2+p2_wet)+
                                                                                      unit = "pt"))))
 
 ggsave(plot = VarariPCA, filename = here("Output","VarariPCA.pdf"), width = 15, height = 15)
+
+# all PCA
+VarariPCA_both<-(p1_both)/(p2_both)+ 
+  patchwork::plot_annotation(#"Cabral Plates", 
+    theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", 
+                                            hjust = 0.5, 
+                                            margin = margin(t = 10, b = 20, 
+                                                            unit = "pt"))))
+
+ggsave(plot = VarariPCA_both, filename = here("Output","VarariPCA_both.pdf"), width = 15, height = 15)
+
 
 ### Site level pca with ranges
 V_pca_Data_site<-Datalog %>%
@@ -485,19 +597,32 @@ C_pca_Data_wet<-Datalog %>%
   #select(Salinity,pH,Phosphate_umolL:Lignin_Like )%>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
   drop_na()
-# Run the PCA
+
+C_pca_Data_both<-Datalog %>%
+  anti_join(remove_cabrallog)%>%
+  # anti_join(remove5)%>%
+  filter(Location == "Cabral", Plate_Seep=="Plate") %>%
+  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+  group_by(Season)%>%
+  mutate_all(.funs = scale)%>% # scale by season
+  drop_na() %>%
+  ungroup()%>%
+  select(-Season)
 
 pca_C <- prcomp(C_pca_Data, scale. = TRUE, center = TRUE)
 pca_C_wet <- prcomp(C_pca_Data_wet, scale. = TRUE, center = TRUE)
+pca_C_both <- prcomp(C_pca_Data_both)
 
 # calculate percent explained by each PC
 perc.explainedC<-round(100*pca_C$sdev/sum(pca_C$sdev),1)
 perc.explainedC_wet<-round(100*pca_C_wet$sdev/sum(pca_C_wet$sdev),1)
+perc.explainedC_both<-round(100*pca_C_both$sdev/sum(pca_C_both$sdev),1)
 
 
 # Extract the scores and loadings
 PC_scoresC <-as_tibble(pca_C$x[,1:2])
 PC_scoresC_wet <-as_tibble(pca_C_wet$x[,1:2])
+PC_scoresC_both <-as_tibble(pca_C_both$x[,1:2])
 
 PC_loadingsC<-as_tibble(pca_C$rotation) %>%
   bind_cols(labels = rownames(pca_C$rotation))%>%
@@ -547,6 +672,31 @@ PC_loadingsC_wet<-as_tibble(pca_C_wet$rotation) %>%
                         labels == "Silicate_umolL" ~ "Silicate",
                         labels == "Salinity" ~"Salinity"))
 
+
+PC_loadingsC_both<-as_tibble(pca_C_both$rotation) %>%
+  bind_cols(labels = rownames(pca_C_both$rotation))%>%
+  mutate(groupings = case_when( # add groupings
+    labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
+    labels == "Salinity" ~ "Salinity",
+    labels %in% c("TA","pH") ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like","MarineHumic_Like")~"fDOM"
+  ),
+  nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        #   labels == "Lignin_Like" ~"Lignin Like",
+                        #    labels == "M_C" ~ "M:C",
+                        labels == "Tyrosine_Like" ~ "Tyrosine Like",
+                        labels == "Tryptophan_Like" ~ "Tryptophan Like",
+                        labels == "HIX"~"HIX",
+                        labels == "MarineHumic_Like" ~ "Marine Humic Like",
+                        labels == "VisibleHumidic_Like" ~ "Visible Humic Like",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity"))
+
 # Put it with all the original data
 C_pca_Data_all<-Data %>%
   anti_join(remove_cabral)%>%
@@ -563,6 +713,13 @@ C_pca_Data_all_wet<-Data %>%
          Season == "Wet") %>%
   drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like,TA) %>%
   bind_cols(PC_scoresC_wet)  
+
+C_pca_Data_all_both<-Data %>%
+  anti_join(remove_cabral)%>%
+  select(!Jamie_Plate_ID)%>% # Jamie's plates are all NA here
+  filter(Location == "Cabral", Plate_Seep=="Plate") %>%
+  drop_na(Salinity,pH,Phosphate_umolL:NN_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like,TA) %>%
+  bind_cols(PC_scoresC_both)  
 
 # scores plot
 p1c<-C_pca_Data_all %>%
@@ -611,6 +768,33 @@ p1c_wet<-C_pca_Data_all_wet %>%
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16),
         plot.title = element_text(hjust = 0.5, size = 18))
+
+
+p1c_both<-C_pca_Data_all_both %>%
+  ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
+  
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  scale_shape_manual(values = c(1, 22,15,16))+
+  scale_colour_manual(values = c("#16697A","#82C0CC"))+
+  scale_fill_manual(values = c("#16697A","#82C0CC"))+
+  # scale_colour_hue(l = 45)+
+  # scale_fill_hue(l = 45)+
+  labs(
+       x = paste0("PC1 ","(",perc.explainedC_both[1],"%)"),
+       y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"))+
+  ggforce::geom_mark_ellipse(
+    aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
+  geom_point(size = 2) +
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        plot.title = element_text(hjust = 0.5, size = 18))+
+  facet_wrap(~Season)
+
 
 # scores plot with depth and light as continuous instead of discrete... missing depth data from lowtide at night :(
 p1c_DL<-C_pca_Data_all %>%
@@ -670,6 +854,28 @@ p2c_wet<-PC_loadingsC_wet %>%
         legend.position = "none"
         )
 
+p2c_both<-PC_loadingsC_both %>%
+  ggplot(aes(x=PC1, y=PC2, label=nicenames, color = groupings))+
+  geom_segment(aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
+               arrow=arrow(length=unit(0.1,"cm")))+
+  #  geom_text(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE) +
+  geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  #  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
+  #        label = PC_loadingsC$labels)+
+  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  labs(color = "",
+       x = paste0("PC1 ","(",perc.explainedC_both[1],"%)"),
+       y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.20, 0.80),
+        legend.text = element_markdown(size = 16),
+        legend.key.size = unit(1, 'cm'),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16))
+
 CabralPCA<-(p1c+p1c_wet)/(p2c+p2c_wet)+ 
   patchwork::plot_annotation(#"Cabral Plates", 
                              theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", 
@@ -678,6 +884,16 @@ CabralPCA<-(p1c+p1c_wet)/(p2c+p2c_wet)+
                                                                                      unit = "pt"))))
 
 ggsave(plot = CabralPCA, filename = here("Output","CabralPCA.pdf"), width = 15, height = 15)
+
+# all PCA
+CabralPCA_both<-(p1c_both)/(p2c_both)+ 
+  patchwork::plot_annotation(#"Cabral Plates", 
+    theme = theme(plot.title = element_text(size = rel(1.5), face = "bold", 
+                                            hjust = 0.5, 
+                                            margin = margin(t = 10, b = 20, 
+                                                            unit = "pt"))))
+
+ggsave(plot = CabralPCA_both, filename = here("Output","CabralPCA_both.pdf"), width = 15, height = 15)
 
 
 #### Add Cabral Site level here ####
