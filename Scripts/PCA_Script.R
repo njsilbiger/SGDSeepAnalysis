@@ -375,32 +375,32 @@ p1_wet<-V_pca_Data_all_wet %>%
 
 p1_both<-V_pca_Data_all_both %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
-  
-  # geom_point(data = V_pca_Data_all %>% filter(Plate_Seep=="Seep"), aes(x = PC1, y = PC2,shape = Day_Night ), color = "black")+
-  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  coord_cartesian(xlim = c(-8, 8), ylim = c(-8, 8)) +
   scale_shape_manual(values = c(1, 22,15,16))+
-  # scale_colour_hue(l = 45)+
-  # scale_fill_hue(l = 45)+
-  #
   scale_colour_manual(values = c("#D64550","#EA9E8D"))+
   scale_fill_manual(values = c("#D64550","#EA9E8D"))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color =Tide), 
-    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0)+
+    alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0, tol = 0.05)+
   geom_point(size = 2) +
   labs(
-       x = paste0("PC1 ","(",perc.explained_both[1],"%)"),
+      # x = paste0("PC1 ","(",perc.explained_both[1],"%)"),
+       x = "",
        y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
   theme_bw()+
   theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16),
-        plot.title = element_text(hjust = 0.5, size = 18))+
-  facet_wrap(~Season)
+        plot.title = element_text(hjust = 0.5, size = 18),
+        strip.background = element_blank(),
+        strip.text = element_blank())+
+  facet_wrap(~Season, nrow=2)
 
 # loadings plot 
 p2<-PC_loadings %>%
@@ -451,24 +451,31 @@ p2_wet<-PC_loadings_wet %>%
 p2_both<-PC_loadings_both %>%
   ggplot(aes(x=PC1, y=PC2, label=nicenames, color = groupings))+
   geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA) +
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_vline(xintercept = 0, lty = 2)+
   geom_segment(data = PC_loadings_both, aes(x=0,y=0,xend=PC1*10,yend=PC2*10),size = 1.2,
                arrow=arrow(length=unit(0.1,"cm")))+
   # annotate("text", x = PC_loadings$PC1*10+0.1, y = PC_loadings$PC2*10+.1,
   #          label = PC_loadings$labels)+
-  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+  coord_cartesian(xlim = c(-8, 8), ylim = c(-8, 8)) +
   labs(color ="",
-       x = paste0("PC1 ","(",perc.explained_both[1],"%)"),
-       y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
+       y = "",
+       x = paste0("PC1 ","(",perc.explained_both[1],"%)"))+
+       #y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        legend.position = c(0.75, 0.85),
+        #legend.position = c(0.75, 0.75),
+        legend.position = "none",
         legend.text = element_markdown(size = 16),
         legend.key.size = unit(1, 'cm'),
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16))
 
+
+## bring it together
+VarariPCA_botha<-p1_both/plot_spacer()/p2_both+plot_layout(heights = c(2,-0.1, 1))
 
 VarariPCA<-(p1+p1_wet)/(p2+p2_wet)+ 
   patchwork::plot_annotation(#"Varari Plates", 
@@ -772,28 +779,32 @@ p1c_wet<-C_pca_Data_all_wet %>%
 
 p1c_both<-C_pca_Data_all_both %>%
   ggplot(aes(x = PC1, y = PC2, color = Tide, shape = TimeBlock))+
-  
+  geom_hline(aes(yintercept = 0), lty = 2)+
+  geom_vline(aes(xintercept = 0), lty = 2)+
   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   scale_shape_manual(values = c(1, 22,15,16))+
   scale_colour_manual(values = c("#16697A","#82C0CC"))+
   scale_fill_manual(values = c("#16697A","#82C0CC"))+
-  # scale_colour_hue(l = 45)+
-  # scale_fill_hue(l = 45)+
   labs(
-       x = paste0("PC1 ","(",perc.explainedC_both[1],"%)"),
-       y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"))+
+     #  x = paste0("PC1 ","(",perc.explainedC_both[1],"%)"),
+       y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"),
+       x = "")+
   ggforce::geom_mark_ellipse(
     aes(fill = Tide, label = paste(TimeBlock, Tide), color = Tide), 
     alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap = 0)+
   geom_point(size = 2) +
   theme_bw()+
   theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16),
-        plot.title = element_text(hjust = 0.5, size = 18))+
-  facet_wrap(~Season)
+        plot.title = element_text(hjust = 0.5, size = 18),
+        strip.background = element_blank(),
+        strip.text = element_blank())+
+  facet_wrap(~Season, nrow=2)
 
 
 # scores plot with depth and light as continuous instead of discrete... missing depth data from lowtide at night :(
@@ -856,25 +867,32 @@ p2c_wet<-PC_loadingsC_wet %>%
 
 p2c_both<-PC_loadingsC_both %>%
   ggplot(aes(x=PC1, y=PC2, label=nicenames, color = groupings))+
+  geom_hline(aes(yintercept = 0), lty = 2)+
+  geom_vline(aes(xintercept = 0), lty = 2)+
   geom_segment(aes(x=0,y=0,xend=PC1*10,yend=PC2*10),
-               arrow=arrow(length=unit(0.1,"cm")))+
-  #  geom_text(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE) +
-  geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
+               arrow=arrow(length=unit(0.1,"cm")), size = 1.2)+
+   geom_richtext(aes(x = PC1*10+0.1, y = PC2*10+.1 ), show.legend = FALSE, size = 5, fill=NA, label.colour = NA)+
   scale_color_manual(values = wes_palette("Darjeeling1"))+
-  #  annotate("text", x = PC_loadingsC$PC1*10+0.1, y = PC_loadingsC$PC2*10+.1,
-  #        label = PC_loadingsC$labels)+
-  coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
+   coord_cartesian(xlim = c(-6, 6), ylim = c(-6, 6)) +
   labs(color = "",
        x = paste0("PC1 ","(",perc.explainedC_both[1],"%)"),
-       y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"))+
+       #y = paste0("PC2 ","(",perc.explainedC_both[2],"%)"),
+       y = "")+
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        legend.position = c(0.20, 0.80),
+        legend.position = c(0.75, 0.25),
         legend.text = element_markdown(size = 16),
         legend.key.size = unit(1, 'cm'),
         axis.title = element_text(size = 18),
         axis.text = element_text(size = 16))
+
+
+CabralPCA_botha<-p1c_both/plot_spacer()/p2c_both+plot_layout(heights = c(2,-0.1, 1))
+
+
+VarariPCA_botha|CabralPCA_botha
+ggsave(here("Output","BothSites_PCA.pdf"), height = 15, width = 15)
 
 CabralPCA<-(p1c+p1c_wet)/(p2c+p2c_wet)+ 
   patchwork::plot_annotation(#"Cabral Plates", 
