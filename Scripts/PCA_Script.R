@@ -140,7 +140,9 @@ Data %>% filter(Plate_Seep == "Plate", Location == "Cabral") %>%
 
 ## create log transformed data for everything except for salinity, temperature, TA, and pH
 Datalog<-Data %>%
-  mutate_at(vars(Phosphate_umolL:Lignin_Like), .funs = function(x){log(x+0.001)})
+  mutate(Humics = VisibleHumidic_Like+MarineHumic_Like,
+         Proteinaceous = Tyrosine_Like+Tryptophan_Like)%>%
+  mutate_at(vars(Phosphate_umolL:Lignin_Like, Humics, Proteinaceous), .funs = function(x){log(x+0.001)})
 
 remove_vararilog<-remove_varari %>% mutate_at(vars(Phosphate_umolL:Lignin_Like), .funs = function(x){log(x+0.001)})
 remove_cabrallog<-remove_cabral %>% mutate_at(vars(Phosphate_umolL:Lignin_Like), .funs = function(x){log(x+0.001)})
@@ -149,8 +151,8 @@ remove_cabrallog<-remove_cabral %>% mutate_at(vars(Phosphate_umolL:Lignin_Like),
 # Varari
 Datalog %>% filter(Plate_Seep == "Plate", Location == "Varari") %>%
   anti_join(remove_vararilog) %>%
-  select(Location, Day_Night, Tide, Salinity:Season) %>%
-  pivot_longer(Salinity:Lignin_Like)%>%
+  select(Location, Day_Night, Tide, Salinity:Season, Humics, Proteinaceous) %>%
+  pivot_longer(c(Salinity:Lignin_Like, Humics, Proteinaceous))%>%
   ggplot(aes(x = value, fill =  paste(Day_Night, Tide)))+
   geom_density(alpha = 0.2)+
   facet_wrap(~name*Season, scales = "free")
@@ -158,8 +160,8 @@ Datalog %>% filter(Plate_Seep == "Plate", Location == "Varari") %>%
 # Cabral
 Datalog %>% filter(Plate_Seep == "Plate", Location == "Cabral") %>%
   anti_join(remove_cabrallog) %>%
-  select(Location, Day_Night, Tide, Salinity:Season) %>%
-  pivot_longer(Salinity:Lignin_Like)%>%
+  select(Location, Day_Night, Tide, Salinity:Season, Humics, Proteinaceous) %>%
+  pivot_longer(c(Salinity:Lignin_Like, Humics, Proteinaceous)) %>%
   ggplot(aes(x = value, fill =  paste(Day_Night, Tide)))+
   geom_density(alpha = 0.2)+
   facet_wrap(~name*Season, scales = "free")
@@ -173,7 +175,8 @@ V_pca_Data_wet<-Datalog %>%
   # filter(DateTime %in% c(ymd_hms("2021-08-05 11:57:00"),ymd_hms("2021-08-05 00:00:00"),ymd_hms("2021-08-08 18:30:00"), ymd_hms("2021-08-08 07:30:00"), ymd_hms("2021-08-04 23:51:00"))) %>%
    filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
-  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+#  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, Humics,Proteinaceous, TA)%>%
   drop_na()
 
 V_pca_Data<-Datalog %>%
@@ -184,14 +187,16 @@ V_pca_Data<-Datalog %>%
   # filter(DateTime %in% c(ymd_hms("2021-08-05 11:57:00"),ymd_hms("2021-08-05 00:00:00"),ymd_hms("2021-08-08 18:30:00"), ymd_hms("2021-08-08 07:30:00"), ymd_hms("2021-08-04 23:51:00"))) %>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
-  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like,TA)%>%
+#  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like,TA)%>%
+  select(Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, Humics,Proteinaceous, TA)%>%
   drop_na()
 
 V_pca_Data_both<-Datalog %>%
    anti_join(remove_vararilog)%>%
   filter(Location == "Varari", Plate_Seep=="Plate") %>%
   #select(Salinity,pH,Phosphate_umolL, Silicate_umolL, NN_umolL, Ammonia_umolL ) %>%
-  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+#  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+  select(Season, Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, Humics,Proteinaceous, TA)%>%
   group_by(Season)%>%
   mutate_all(.funs = scale)%>% # scale by season
   drop_na() %>%
@@ -223,7 +228,7 @@ PC_loadings<-as_tibble(pca_V$rotation) %>%
     labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
     labels == "Salinity" ~ "Salinity",
     labels %in% c("pH","TA") ~ "Carbonate Chemistry",
-    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like")~"fDOM"
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like", "Humics","Proteinaceous")~"fDOM"
   ),
   nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
                         labels == "pH" ~ "pH<sub>T</sub>",
@@ -239,7 +244,9 @@ PC_loadings<-as_tibble(pca_V$rotation) %>%
                         labels == "Phosphate_umolL" ~ "Phosphate",
                         labels == "NN_umolL" ~ "Nitrate+Nitrite",
                         labels == "Silicate_umolL" ~ "Silicate",
-                        labels == "Salinity" ~"Salinity"))
+                        labels == "Salinity" ~"Salinity",
+                        labels == "Humics" ~ "Humic fDOM",
+                        labels == "Proteinaceous" ~"Proteinaceous fDOM"))
 
 PC_loadings_wet<-as_tibble(pca_V_wet$rotation) %>%
   bind_cols(labels = rownames(pca_V_wet$rotation))%>%
@@ -247,7 +254,7 @@ PC_loadings_wet<-as_tibble(pca_V_wet$rotation) %>%
     labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
     labels == "Salinity" ~ "Salinity",
     labels %in% c("pH","TA") ~ "Carbonate Chemistry",
-    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like")~"fDOM"
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like", "Humics","Proteinaceous")~"fDOM"
   ),
   nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
                         labels == "pH" ~ "pH<sub>T</sub>",
@@ -263,7 +270,9 @@ PC_loadings_wet<-as_tibble(pca_V_wet$rotation) %>%
                         labels == "Phosphate_umolL" ~ "Phosphate",
                         labels == "NN_umolL" ~ "Nitrate+Nitrite",
                         labels == "Silicate_umolL" ~ "Silicate",
-                        labels == "Salinity" ~"Salinity"))
+                        labels == "Salinity" ~"Salinity",
+                        labels == "Humics" ~ "Humic fDOM",
+                        labels == "Proteinaceous" ~"Proteinaceous fDOM"))
 
 
 PC_loadings_both<-as_tibble(pca_V_both$rotation) %>%
@@ -272,7 +281,7 @@ PC_loadings_both<-as_tibble(pca_V_both$rotation) %>%
     labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
     labels == "Salinity" ~ "Salinity",
     labels %in% c("pH","TA") ~ "Carbonate Chemistry",
-    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like")~"fDOM"
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like", "Humics","Proteinaceous")~"fDOM"
   ),
   nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
                         labels == "pH" ~ "pH<sub>T</sub>",
@@ -288,7 +297,9 @@ PC_loadings_both<-as_tibble(pca_V_both$rotation) %>%
                         labels == "Phosphate_umolL" ~ "Phosphate",
                         labels == "NN_umolL" ~ "Nitrate+Nitrite",
                         labels == "Silicate_umolL" ~ "Silicate",
-                        labels == "Salinity" ~"Salinity"))
+                        labels == "Salinity" ~"Salinity",
+                        labels == "Humics" ~ "Humic fDOM",
+                        labels == "Proteinaceous" ~"Proteinaceous fDOM"))
 
 # Put it with all the original data
 V_pca_Data_all_wet<-Data %>%
@@ -609,7 +620,8 @@ C_pca_Data_both<-Datalog %>%
   anti_join(remove_cabrallog)%>%
   # anti_join(remove5)%>%
   filter(Location == "Cabral", Plate_Seep=="Plate") %>%
-  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+#  select(Season,Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, MarineHumic_Like, TA)%>%
+  select(Season, Salinity,pH,Phosphate_umolL:NN_umolL,Ammonia_umolL, Humics,Proteinaceous, TA)%>%
   group_by(Season)%>%
   mutate_all(.funs = scale)%>% # scale by season
   drop_na() %>%
@@ -685,8 +697,8 @@ PC_loadingsC_both<-as_tibble(pca_C_both$rotation) %>%
   mutate(groupings = case_when( # add groupings
     labels %in% c("Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL")~ "Nutrient Chemistry",
     labels == "Salinity" ~ "Salinity",
-    labels %in% c("TA","pH") ~ "Carbonate Chemistry",
-    labels %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like","MarineHumic_Like")~"fDOM"
+    labels %in% c("pH","TA") ~ "Carbonate Chemistry",
+    labels %in% c("HIX","Tryptophan_Like","Tyrosine_Like","VisibleHumidic_Like", "MarineHumic_Like", "Humics","Proteinaceous")~"fDOM"
   ),
   nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
                         labels == "pH" ~ "pH<sub>T</sub>",
@@ -702,7 +714,9 @@ PC_loadingsC_both<-as_tibble(pca_C_both$rotation) %>%
                         labels == "Phosphate_umolL" ~ "Phosphate",
                         labels == "NN_umolL" ~ "Nitrate+Nitrite",
                         labels == "Silicate_umolL" ~ "Silicate",
-                        labels == "Salinity" ~"Salinity"))
+                        labels == "Salinity" ~"Salinity",
+                        labels == "Humics" ~ "Humic fDOM",
+                        labels == "Proteinaceous" ~"Proteinaceous fDOM"))
 
 # Put it with all the original data
 C_pca_Data_all<-Data %>%
@@ -881,11 +895,12 @@ p2c_both<-PC_loadingsC_both %>%
   theme_bw()+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        legend.position = c(0.75, 0.25),
+        legend.position = c(0.75, 0.80),
         legend.text = element_markdown(size = 16),
         legend.key.size = unit(1, 'cm'),
         axis.title = element_text(size = 18),
-        axis.text = element_text(size = 16))
+        axis.text = element_text(size = 16),
+        legend.background = element_blank())
 
 
 CabralPCA_botha<-p1c_both/plot_spacer()/p2c_both+plot_layout(heights = c(2,-0.1, 1))
@@ -1327,9 +1342,19 @@ ggsave(plot = SeepPCA, filename = here("Output","SeepPCA.png"), width = 16, heig
 
 ### plots of each parameter versus depth
 Data %>%
-  filter(Plate_Seep=="Seep", Salinity>10) %>% # I think I need to remove the bottle sample...
+  filter(Plate_Seep=="Seep", Salinity > 10) %>% # I think I need to remove the bottle sample...
   pivot_longer(cols = Salinity:Ammonia_umolL) %>% 
   ggplot(aes(x = Depth_seep, y = value, color = Season))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  scale_y_continuous(trans = "log10")+
+  facet_wrap(~Location*name, scales = "free")
+
+# plot versus salinity
+Data %>%
+  filter(Plate_Seep=="Seep", Salinity > 10) %>% # I think I need to remove the bottle sample...
+  pivot_longer(cols = Temperature:Ammonia_umolL) %>% 
+  ggplot(aes(x = Salinity, y = value, color = Season))+
   geom_point()+
   geom_smooth(method = "lm")+
   scale_y_continuous(trans = "log10")+
@@ -1339,7 +1364,9 @@ Data %>%
 ranges<-Data %>%
   filter(Plate_Seep=="Seep"| Plate_Seep == "Spring") %>% # just do the seep data
   filter(CowTagID != "Varari_Well") %>% # remove the well sample
-  select(Location,Season, Salinity, TA,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX, TempInSitu_seep, MarineHumic_Like, Lignin_Like, M_C)%>%
+  mutate(Humics = MarineHumic_Like+VisibleHumidic_Like,
+         Proteinaceous = Tryptophan_Like+Tyrosine_Like)%>%
+  select(Location,Season, Salinity, TA,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX, TempInSitu_seep, MarineHumic_Like, Lignin_Like, Humics, Proteinaceous, M_C)%>%
  # select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
   pivot_longer(cols = c(Salinity, TA: M_C)) %>%
   drop_na()%>%
@@ -1352,7 +1379,7 @@ ranges<-Data %>%
                             name %in% c("Salinity")~ " psu",
                             name %in% c("pH")~ " pH total scale",
                             name == "TA"~ " &mu;mol kg<sup>-1</sup>",
-                            name %in% c("Lignin_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like","VisibleHumidic_Like")~" Raman Units"),
+                            name %in% c("Lignin_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like","VisibleHumidic_Like","Humics","Proteinaceous")~" Raman Units"),
       range = paste0("[",min," - ",max,unit,"]"),
       nicenames = case_when(name == "TempInSitu_seep" ~ "Temperature",
                             name == "pH" ~ "pH<sub>T</sub>",
@@ -1368,7 +1395,9 @@ ranges<-Data %>%
                             name == "Phosphate_umolL" ~ "Phosphate",
                             name == "NN_umolL" ~ "Nitrate+Nitrite",
                             name == "Silicate_umolL" ~ "Silicate",
-                            name == "Salinity" ~"Salinity"
+                            name == "Salinity" ~"Salinity",
+                            name == "Humics"~ "Humics fDOM",
+                            name == "Proteinaceous"~"Proteinaceous fDOM"
                             
         
       ))
@@ -1381,8 +1410,8 @@ cor_fun <- function(data) cor.test(data$value, data$Depth_seep, method = "pearso
 
 cortest<-Datalog %>%
   filter(Plate_Seep=="Seep") %>% # just do the seep data
-  select(Location, Season, Salinity, TA: Lignin_Like, TempInSitu_seep, Depth_seep)%>%
-  pivot_longer(cols = c(Salinity, TA: Lignin_Like, TempInSitu_seep)) %>%
+  select(Location, Season, Salinity, TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep, Depth_seep)%>%
+  pivot_longer(cols = c(Salinity, TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep)) %>%
   drop_na()%>%
   group_by(Location, name, Season)%>%
   nest() %>%
@@ -1437,8 +1466,8 @@ cor_fun <- function(data) cor.test(data$value, data$Salinity, method = "pearson"
 cortest<-Datalog %>%
   filter(Plate_Seep=="Seep" | Plate_Seep == "Spring" ) %>% # just do the seep data
   filter(CowTagID != "Varari_Well") %>% # remove the well sample
-  select(Location,Season, Salinity, TA: Lignin_Like, TempInSitu_seep)%>%
-  pivot_longer(cols = c(TA: Lignin_Like, TempInSitu_seep)) %>%
+  select(Location, Season, Salinity, TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep, Depth_seep)%>%
+  pivot_longer(cols = c(TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep)) %>%
   drop_na()%>%
   group_by(Location, name, Season)%>%
   nest() %>%
@@ -1448,9 +1477,20 @@ cortest<-Datalog %>%
   mutate(sig = ifelse(p.value<0.05, 1,0 ))# add a 1 if significant correlation (to 0.1 pvalue)
 
 Vcortest_salinity<-cortest %>%
-  filter(!name %in% c("M_C","HIX"),
+  filter(!name %in% c("M_C","HIX", "Lignin_Like","VisibleHumidic_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like"),
          Location == "Varari")%>%
-  ggplot(aes(x = name, y = Season, color = estimate, size = abs(estimate)))+
+  mutate(labels = name,
+         nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                               labels == "pH" ~ "pH<sub>T</sub>",
+                               labels == "Ammonia_umolL" ~ "Ammonium",
+                               labels == "TA" ~ "Total Alkalinity",
+                               labels == "Phosphate_umolL" ~ "Phosphate",
+                               labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                               labels == "Silicate_umolL" ~ "Silicate",
+                               labels == "Salinity" ~"Salinity",
+                               labels == "Humics" ~ "Humic fDOM",
+                               labels == "Proteinaceous" ~"Proteinaceous fDOM")) %>%
+  ggplot(aes(x = nicenames, y = Season, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0,limits = c(-1,1) )+
@@ -1463,12 +1503,24 @@ Vcortest_salinity<-cortest %>%
   labs(x = "",
        y = "",
        color = "Correlation coefficient with Salinity",
-       title = "Varari")
+       title = "Varari")+
+  theme(axis.text.y = element_markdown())
 
 Ccortest_salinity<-cortest %>%
-  filter(!name %in% c("M_C","HIX"),
+  filter(!name %in% c("M_C","HIX", "Lignin_Like","VisibleHumidic_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like"),
          Location == "Cabral")%>%
-  ggplot(aes(x = name, y = Season, color = estimate, size = abs(estimate)))+
+  mutate(labels = name,
+         nicenames = case_when(labels == "TempInSitu_seep" ~ "Temperature",
+                        labels == "pH" ~ "pH<sub>T</sub>",
+                        labels == "Ammonia_umolL" ~ "Ammonium",
+                        labels == "TA" ~ "Total Alkalinity",
+                        labels == "Phosphate_umolL" ~ "Phosphate",
+                        labels == "NN_umolL" ~ "Nitrate+Nitrite",
+                        labels == "Silicate_umolL" ~ "Silicate",
+                        labels == "Salinity" ~"Salinity",
+                        labels == "Humics" ~ "Humic fDOM",
+                        labels == "Proteinaceous" ~"Proteinaceous fDOM")) %>%
+  ggplot(aes(x = nicenames, y = Season, color = estimate, size = abs(estimate)))+
   geom_point()+
   geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
   scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0,limits = c(-1,1) )+
@@ -1481,7 +1533,8 @@ Ccortest_salinity<-cortest %>%
   labs(x = "",
        y = "",
        color = "Correlation coefficient with Salinity",
-       title = "Cabral")
+       title = "Cabral")+
+  theme(axis.text.y = element_markdown())
 
 Vcortest_salinity+Ccortest_salinity+plot_layout(guides = "collect")+ plot_annotation(tag_levels = "A")&theme(legend.position = 'bottom')
 
@@ -1492,31 +1545,26 @@ ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 10
 
 cortest %>%
   left_join(ranges) %>% # join with the ranges
-  mutate(name = factor(name,levels = c("TA","pH","Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL","HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like","TempInSitu_seep"))) %>%
- # filter(Location == "Varari") %>%
-  filter(!name %in% c("HIX","M_C", "Lignin_Like") )%>%
+  mutate(name = factor(name,levels = c("TA","pH","Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL","Humics","Proteinaceous","HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like","TempInSitu_seep"))) %>%
+  filter(!name %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like") )%>%
   ggplot(aes(x = fct_reorder(nicenames, as.numeric(name), .desc = TRUE),#y = 1,
-             y = c(rep(0.5,22),rep(1.5,22)),
+             y = c(rep(0.5,18),rep(1.5,18)),
              #y = c(rep(1,24),rep(1.8,24)),
-             color = estimate, size = abs(estimate)))+
-  geom_point()+
-  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
-  # geom_richtext(aes(y = c(rep(1.4,24),rep(2.2,24)),
-  #                   label = range), size = 5, color = "black", fill = NA, label.colour = NA)+
-#  ylim (0.8,3)+
-  scale_color_gradient2(low = "#005AB5", high = "#DC3220",mid = "black", midpoint = 0, limits = c(-1,1))+
+             fill = estimate, size = abs(estimate)))+
+  geom_point(shape = 21)+
+#  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
+  scale_fill_gradient2(low = "#26494f", high = "#a3222d",mid = "beige", midpoint = 0, limits = c(-1,1))+
   scale_size(range = c(0.1,10))+
-  scale_shape_manual(values = c(NA,8))+
+#  scale_shape_manual(values = c(NA,8))+
   coord_flip()+
   theme_bw()+
   guides(size = "none",
          shape = "none",
-         colour = guide_colourbar(title.position="top", title.hjust = 0.5))+
+         fill = guide_colourbar(title.position="top", title.hjust = 0.5))+
   labs(x = "",
        y = "",
-       color = "Correlation with Salinity"
-     #  title = "Correlation with Salinity"
-       )+
+       fill = "Correlation with Salinity"
+         )+
   scale_y_continuous(breaks = c(.5,1.5), labels = c("Dry Season","Wet Season"), limits = c(0,2))+
                      #, limits = c(0.8,2.5))+
   theme(#axis.ticks.x = element_blank(),
@@ -1526,9 +1574,7 @@ cortest %>%
         axis.text.x = element_markdown(size = 14),
         legend.title = element_text(size=14),
         legend.text = element_text(size = 12),
-      #  panel.grid.major.x = element_blank(),
-      #  panel.grid.minor.x = element_blank(),
-        legend.position = "bottom",
+         legend.position = "bottom",
         legend.key.width = unit(1, "cm"),
       strip.background = element_blank(),
       strip.text = element_markdown(size = 14, face = "bold")
@@ -1537,10 +1583,29 @@ cortest %>%
 
 ggsave(here("Output","CorrelationPlot_seepSalinity.pdf"), height = 8, width = 8)
 
+
+# Make a density plot
+Data %>%
+  mutate(Humics = VisibleHumidic_Like+MarineHumic_Like,
+          Proteinaceous = Tyrosine_Like+Tryptophan_Like) %>%
+  filter(Plate_Seep=="Seep") %>% # just do the seep data
+  select(Location, Season, Salinity, TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep, Depth_seep)%>%
+  pivot_longer(cols = c(TA: Lignin_Like, Humics, Proteinaceous, TempInSitu_seep)) %>%
+  drop_na() %>%
+  mutate(name = factor(name,levels = c("TA","pH","Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL","Humics","Proteinaceous","HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like","TempInSitu_seep"))) %>%
+  # filter(Location == "Varari") %>%
+  filter(!name %in% c("HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like") )%>%
+   ggplot(aes(x = value, fill = Season))+
+  geom_density(alpha = 0.5)+
+  coord_trans(x = "log10")+
+  facet_wrap(name~Location, scales = "free", ncol = 2)
+
 ### Pure Spring Water
 mean_spring<-Data %>%
+  mutate(Humics = VisibleHumidic_Like+MarineHumic_Like,
+         Proteinaceous = Tyrosine_Like+Tryptophan_Like) %>%
   filter(CowTagID %in% c("VSPRING","Varari_Well","CSPRING_BEACH2","CSPRING_ROAD")) %>% # just do the seep data
-  select(Location, Salinity,CowTagID, TA,pH,Phosphate_umolL:Ammonia_umolL, VisibleHumidic_Like, Tyrosine_Like, Tryptophan_Like, HIX, TempInSitu_seep)%>%
+  select(Location, Salinity,CowTagID, TA,pH,Phosphate_umolL:Ammonia_umolL, Humics,Proteinaceous, TempInSitu_seep)%>%
   # select(Location, Salinity, TA: Lignin_Like, TempInSitu_seep) %>%
   pivot_longer(cols = c(Salinity, TA: TempInSitu_seep)) %>%
   drop_na()%>%
@@ -1552,7 +1617,7 @@ mean_spring<-Data %>%
                           name %in% c("Salinity")~ " psu",
                           name %in% c("pH")~ " pH total scale",
                           name == "TA"~ " &mu;mol kg<sup>-1</sup>",
-                          name %in% c("Lignin_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like","VisibleHumidic_Like")~" Raman Units"),
+                          name %in% c("Lignin_Like","Tyrosine_Like","Tryptophan_Like","MarineHumic_Like","VisibleHumidic_Like", "Humics","Proteinaceous")~" Raman Units"),
          nicenames = case_when(name == "TempInSitu_seep" ~ "Temperature",
                                name == "pH" ~ "pH<sub>T</sub>",
                                #    name == "Lignin_Like" ~"Lignin Like",
@@ -1567,7 +1632,9 @@ mean_spring<-Data %>%
                                name == "Phosphate_umolL" ~ "Phosphate",
                                name == "NN_umolL" ~ "Nitrate+Nitrite",
                                name == "Silicate_umolL" ~ "Silicate",
-                               name == "Salinity" ~"Salinity"
+                               name == "Salinity" ~"Salinity",
+                               name == "Humics" ~"Humics fDOM",
+                               name == "Proteinaceous"~"Proteinaceous fDOM"
                                
                                
          )) %>%
@@ -1576,11 +1643,13 @@ mean_spring<-Data %>%
 
 
 mx<-mean_spring %>%
+  mutate(name = factor(name,levels = c("Salinity","TA","pH","Ammonia_umolL","NN_umolL","Phosphate_umolL","Silicate_umolL","Humics","Proteinaceous","HIX","Lignin_Like","M_C","MarineHumic_Like","VisibleHumidic_Like","Tryptophan_Like","Tyrosine_Like","TempInSitu_seep"))) %>%
   column_to_rownames(var = "nicenames") %>%
+  arrange(name)%>%
   select(unit,CSPRING_BEACH2,CSPRING_ROAD,VSPRING,Varari_Well ) %>%
   rename("Cabral Beach"=CSPRING_BEACH2, "Cabral Road"=CSPRING_ROAD,
          "Varari Beach"=VSPRING, "Varari Well"=Varari_Well) %>%
-    htmlTable()
+    htmlTable(css.cell = "width: 110px")
 
 mx
    
