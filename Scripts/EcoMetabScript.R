@@ -739,7 +739,7 @@ lowVarari<-Cdata %>%
 
 
 PTADIC<-lowVarari %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = SGDpres, fill = SGDpres))+
+  ggplot(aes(x = DIC.diff, y = TA.diff, color = SGDpres, fill = SGDpres))+
   geom_hline(aes(yintercept = 0), lty = 2)+
   geom_vline(aes(xintercept = 0), lty = 2)+
   geom_point()+
@@ -750,12 +750,11 @@ PTADIC<-lowVarari %>%
         #title = "Data collected between 6:40 - 7:40am",
        color = " ",
        x = "&Delta; DIC",
-       y = "&Delta; TA/2") + 
+       y = "&Delta; TA") + 
   geom_curve(
  #   aes(x = 2020, y = 2380, xend = 2035, yend = 2360),
-    aes(x = -20, y = 10, xend = -10, yend = 5),
-    
-    curvature = -0.5,
+    aes(x = -50, y = -45, xend = -40, yend = -40),
+    curvature = 0.5,
     arrow = arrow(
         length = unit(0.03, "npc"), 
       type="closed" # Describes arrow head (open or closed)
@@ -766,7 +765,7 @@ PTADIC<-lowVarari %>%
   )+
   geom_curve(
    # aes(x = 2060, y = 2405, xend = 2075, yend = 2385),
-    aes(x = 13, y = 18, xend = 23, yend = 13),
+    aes(x = -50, y = 10, xend = -40, yend = 5),
     
     curvature = 0.5,
     arrow = arrow(
@@ -777,9 +776,9 @@ PTADIC<-lowVarari %>%
     size = 1.2,
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
-  annotate("text",x = -20, y = 12, label = "SGD present", size = 8)+
+  annotate("text",x = -50, y = -48, label = "SGD present", size = 8)+
   #annotate("text",x = 2020, y = 2385, label = "SGD present", size = 8)+
-  annotate("text",x = 13, y = 20, label = "SGD suppressed", size = 8)+
+  annotate("text",x = -50, y = 15, label = "SGD suppressed", size = 8)+
   #annotate("text",x = 2060, y = 2410, label = "SGD suppressed", size = 8)+
   scale_color_manual(values = c("#9CC3D5FF","#0063B2FF"))+
   scale_fill_manual(values = c("#9CC3D5FF","#0063B2FF"))+
@@ -815,8 +814,8 @@ pbox<-lowVarari %>%
 
 
 ## Make a plot with an inset
-PTADIC + annotation_custom(ggplotGrob(pbox), xmin = 15,
-                           xmax = 45, ymin = -20, ymax = 5)
+PTADIC + annotation_custom(ggplotGrob(pbox), xmin = -30,
+                           xmax = 5, ymin = -60, ymax = -30)
 ggsave(here("Output","LowTideTADIC.png"), width = 10, height = 8)
 
 # run an ANCOVA to see of the slopes are different
@@ -907,10 +906,11 @@ plot_all<-Cdata %>%
          Location == "Varari",
          Date != ymd("2021-08-06"), 
          Season == "Dry") %>%
-  ggplot(aes(x = DIC.diff, y = TA.diff/2, color = Tide))+
+  ggplot(aes(x = DIC.diff, y = TA.diff, color = Tide))+
   geom_hline(aes(yintercept = 0), lty = 2)+
   geom_vline(aes(xintercept = 0), lty = 2)+
-  geom_point(aes(shape = Day_Night))+
+  geom_point(#aes(shape = Day_Night))+
+  )+
   geom_smooth(method = "lm", aes(fill = Tide)) +
   #facet_wrap(~Season)
   # scale_size_continuous(trans = "log10")+
@@ -918,12 +918,12 @@ plot_all<-Cdata %>%
     #title = "Data collected between 6:40 - 7:40am",
     color = "Tide",
     x = "&Delta; DIC",
-    y = "&Delta; TA/2") + 
-  scale_shape_manual(values = c(22,16))+
+    y = "&Delta; TA") + 
+#  scale_shape_manual(values = c(22,16))+
   scale_colour_hue(l = 45)+
   scale_fill_hue(l = 45)+
   geom_curve(
-    aes(x = -100, y = -6, xend = -90, yend = -14),
+    aes(x = -20, y = 20, xend = -10, yend = 8),
     curvature = -0.5,
     arrow = arrow(
       length = unit(0.03, "npc"), 
@@ -934,7 +934,7 @@ plot_all<-Cdata %>%
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
   geom_curve(
-    aes(x = -25, y = -22, xend = -40, yend = -12),
+    aes(x = 30, y = -15, xend = 40, yend = 0),
     curvature = 0.5,
     arrow = arrow(
       length = unit(0.03, "npc"), 
@@ -944,8 +944,8 @@ plot_all<-Cdata %>%
     size = 1.2,
     angle = 90 # Anything other than 90 or 0 can look unusual
   )+
-  annotate("text",x = -100, y = -4, label = "Low Tide", size = 8)+
-  annotate("text",x = -25, y = -28, label = "High Tide", size = 8)+
+  annotate("text",x = -25, y = 25, label = "High Tide", size = 8)+
+  annotate("text",x = 10, y = -14, label = "Low Tide", size = 8)+
     theme_bw()+
   
   theme(legend.position="none",
@@ -1017,8 +1017,8 @@ plotN_all<-Cdata %>%
        y = "Nitrate (&mu;mol L<sup>-1</sup>)")
 
 ## Make a plot with an inset
-plot_all + annotation_custom(ggplotGrob(plotN_all), xmin = -50,
-                           xmax = 10, ymin = -15, ymax = -40)
+plot_all + annotation_custom(ggplotGrob(plotN_all), xmin = 15,
+                           xmax = 75, ymin = -25, ymax = -55)
 ggsave(here("Output","HighLowTADIC.png"), width = 10, height = 8)
 
 
