@@ -1679,5 +1679,36 @@ Data %>%
   facet_wrap(~Location*Season, scales = "free")
 ggsave(here("Output","SivsNN.png"), width = 5, height = 5)
 
+# Plot Silicate : N ratios
+Data %>% # look at just the end members first
+  filter(Plate_Seep == "Spring") %>%
+  mutate(ratio = NN_umolL/Silicate_umolL) %>%
+  select(Location, CowTagID, ratio)
+
+Data %>%
+  filter(Plate_Seep == "Plate") %>%
+  mutate(ratio = log(NN_umolL/Silicate_umolL)) %>%
+  ggplot(aes(x = Silicate_umolL, y = ratio, color = Location))+
+  geom_point()+
+  geom_smooth(method = "lm", formula = 'y~log(x)')+
+  coord_trans(x = "log")+
+  labs(y = "log ratio of NN:Si")+
+  facet_wrap(~Season)+
+  theme_bw()
+
+si_NN_mod<-lm(ratio~ log(Silicate_umolL)*Location, data = Data %>%
+                filter(Plate_Seep == "Plate", Season == "Dry") %>%
+                mutate(ratio = log(NN_umolL/Silicate_umolL)))
+
+anova(si_NN_mod)
+summary(si_NN_mod)
+
+si_NN_modW<-lm(ratio~ log(Silicate_umolL)*Location, data = Data %>%
+                filter(Plate_Seep == "Plate", Season == "Wet") %>%
+                mutate(ratio = log(NN_umolL/Silicate_umolL)))
+
+anova(si_NN_modW)
+summary(si_NN_modW)
+
 ### Only keep certain dataframes for eco metab script
 rm(list= ls()[!(ls() %in% c("Data", "Datalog", "remove_varari","remove_cabral","remove_vararilog","remove_cabrallog","turb_all"))])
