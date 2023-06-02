@@ -1550,10 +1550,11 @@ cortest %>%
   ggplot(aes(x = fct_reorder(nicenames, as.numeric(name), .desc = TRUE),#y = 1,
              y = c(rep(0.5,18),rep(1.5,18)),
              #y = c(rep(1,24),rep(1.8,24)),
-             fill = estimate, size = abs(estimate)))+
+             fill = -estimate, size = abs(estimate)))+
   geom_point(shape = 21)+
 #  geom_point(aes(shape = factor(sig)), size = 2, color = "white")+
-  scale_fill_gradient2(low = "#26494f", high = "#a3222d",mid = "beige", midpoint = 0, limits = c(-1,1))+
+  # scale_fill_gradient2(low = "#26494f", high = "#a3222d",mid = "beige", midpoint = 0, limits = c(-1,1))+
+  scale_fill_gradient2(low = "#AD9024", high = "#AC7299",mid = "beige", midpoint = 0, limits = c(-1,1))+
   scale_size(range = c(0.1,10))+
 #  scale_shape_manual(values = c(NA,8))+
   coord_flip()+
@@ -1563,7 +1564,7 @@ cortest %>%
          fill = guide_colourbar(title.position="top", title.hjust = 0.5))+
   labs(x = "",
        y = "",
-       fill = "Correlation with Salinity"
+       fill = "Correlation with freshwater"
          )+
   scale_y_continuous(breaks = c(.5,1.5), labels = c("Dry Season","Wet Season"), limits = c(0,2))+
                      #, limits = c(0.8,2.5))+

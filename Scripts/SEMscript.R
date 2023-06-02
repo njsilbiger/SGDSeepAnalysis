@@ -147,7 +147,7 @@ RunSEM<-function(site, season){
   
   R2<-Rdata2 %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = exp(estimate)), lwd = 1, color = 'grey')+
+    geom_line(aes(x = exp(SilicateumolL), y = exp(estimate)), lwd = 1)+
     geom_ribbon(aes(x = exp(SilicateumolL),ymin=exp(lower), ymax=exp(upper)), linetype=1.5, alpha=0.3, fill = "grey")+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = NN_umolL)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
@@ -174,7 +174,7 @@ RunSEM<-function(site, season){
   
   R3<-Rdata3 %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(NNumolL), y = estimate, lty = Day.Night), color = "grey", lwd = 1)+
+    geom_line(aes(x = exp(NNumolL), y = estimate, lty = Day.Night),  lwd = 1)+
     geom_ribbon(aes(x = exp(NNumolL),ymin=lower, ymax=upper, lty = Day.Night), fill = "grey", alpha=0.3)+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NN_umolL, y = NEP.proxy, color = Temperature, shape = Day_Night)) +
     ylab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
@@ -207,7 +207,7 @@ RunSEM<-function(site, season){
   
   R3a<- Rdata3a %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = Temperature, y = estimate), lwd = 1, color = 'grey')+
+    geom_line(aes(x = Temperature, y = estimate), lwd = 1)+
     geom_ribbon(aes(x = Temperature,ymin=lower, ymax=upper), linetype=1.5, alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Temperature, y = NEP.proxy, color = NN_umolL)) +
     ylab(expression(atop("NEP", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
@@ -235,7 +235,7 @@ RunSEM<-function(site, season){
     
   R4<- Rdata4 %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = NEP.proxy, y = estimate), lwd = 1, color = 'grey')+
+    geom_line(aes(x = NEP.proxy, y = estimate), lwd = 1)+
     geom_ribbon(aes(x = NEP.proxy,ymin=lower, ymax=upper), linetype=1.5, alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NEP.proxy, y = pH, color = Silicate_umolL)) +
     scale_color_gradient(name = "Silicate", trans = "log", breaks =c(0.1,1,2,3,5,10,15), low = "lightblue", high = "darkblue")+
@@ -266,7 +266,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
   
   R4a<-Rdata4a%>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate, lty = factor(NEP.proxy)), lwd = 1, color = "grey")+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate, lty = factor(NEP.proxy)), lwd = 1)+
     geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper, lty = factor(NEP.proxy)), fill = "grey", alpha=0.3)+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = pH, color = NEP.proxy)) +
     scale_color_gradient2(low = "#D8B365",
@@ -301,7 +301,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
     
   R5<-Rdata5 %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = pH, y = estimate), lwd = 1, color = 'grey')+
+    geom_line(aes(x = pH, y = estimate), lwd = 1)+
     geom_ribbon(aes(x = pH,ymin=lower, ymax=upper), linetype=1.5, alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = pH, y = NEC.proxy, color = Temperature)) +
     ylab(expression(atop("NEC", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
@@ -330,7 +330,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
   
   R5a<-Rdata5a %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = Temperature, y = estimate), lwd = 1, color = 'grey')+
+    geom_line(aes(x = Temperature, y = estimate), lwd = 1)+
     geom_ribbon(aes(x = Temperature,ymin=lower, ymax=upper), linetype=1.5, alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Temperature, y = NEC.proxy, color = pH)) +
     ylab(expression(atop("NEC", paste("(",Delta," ", mu, "mol kg"^-1,")"))))+
@@ -390,7 +390,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
   
   R6a<-Rdata6a %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate), lwd = 1, color = 'grey')+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate), lwd = 1)+
     geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper),  alpha=0.3, fill = 'grey')+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = VisibleHumidic_Like +MarineHumic_Like, color = NEP.proxy)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
@@ -425,7 +425,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
   
   R7<-Rdata7 %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = NEC.proxy, y = estimate), color = "grey", lwd = 1)+
+    geom_line(aes(x = NEC.proxy, y = estimate),  lwd = 1)+
     geom_ribbon(aes(x = NEC.proxy,ymin=lower, ymax=upper),fill = "grey", linetype=1.5, alpha=0.3)+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = NEC.proxy, y = Tryptophan_Like +Tyrosine_Like, color = Silicate_umolL)) +
     scale_color_gradient(name = "Silicate", trans = "log", breaks =c(0.1,1,2,3,5,10,15), low = "lightblue", high = "darkblue")+
@@ -453,7 +453,7 @@ R<-conditional_effects(fit_brms, "SilicateumolL:NEP.proxy", resp = "pH", resolut
   
   R7a<-Rdata7a %>%
     ggplot()+ # back trasform the log transformed data for better visual
-    geom_line(aes(x = exp(SilicateumolL), y = estimate), color = "grey", lwd = 1)+
+    geom_line(aes(x = exp(SilicateumolL), y = estimate),  lwd = 1)+
     geom_ribbon(aes(x = exp(SilicateumolL),ymin=lower, ymax=upper),fill = "grey", linetype=1.5, alpha=0.3)+
     geom_point(data = Cdata %>% filter(Plate_Seep == "Plate", Location  == site, Season == season), aes(x = Silicate_umolL, y = Tryptophan_Like +Tyrosine_Like, color = NEC.proxy)) +
     xlab(expression(atop("Silicate", paste("(",mu,"mol L"^-1,")"))))+
@@ -571,7 +571,7 @@ IndivPlots<-function(site, season){
     filter(Location == site, Season == season) %>%
     ggplot(aes(x = value, y = independent, shape = sig)) +  # note how we used `reorder()` to arrange the coefficients
     geom_vline(xintercept = 0, alpha = 1/10, color = 'firebrick4') +
-    geom_point(size = 2)+
+    geom_point(size = 3)+
     geom_errorbarh(aes(xmin = .lower, xmax = .upper), height = 0)+
     #scale_alpha_manual(values = c(0.2,1))+
     scale_shape_manual(values = c(1,16))+
@@ -608,7 +608,7 @@ CoefPlot<-AllCoefs%>%
   # ggplot(aes(x = value, y = reorder(independent, value), shape = sig, color = Site)) +  # note how we used `reorder()` to arrange the coefficients
   ggplot(aes(x = value, y = independent, shape = sig, color = Location)) +  # note 
   geom_vline(xintercept = 0, alpha = 1/10, color = 'firebrick4') +
-  geom_point(size = 2)+
+  geom_point(size = 3)+
   geom_errorbarh(aes(xmin = .lower, xmax = .upper), height = 0)+
   #scale_alpha_manual(values = c(0.2,1))+
   scale_shape_manual(values = c(1,16))+
@@ -699,7 +699,8 @@ NNSi<-Allfits %>%
   coord_trans(x = "log", y = "log") +
   scale_color_manual(values = c("#16697A","#D64550"))+
   labs(x = expression(paste("Silicate", " (",mu,"mol L"^-1,")")),
-       y = expression(paste("NO"[x], " (",mu,"mol L"^-1,")")))+
+       y = expression(paste("N+N", " (",mu,"mol L"^-1,")")))+
+    #   y = expression(paste("NO"[x], " (",mu,"mol L"^-1,")")))+
   theme_classic()
 
 NEPNN<-Allfits %>%
@@ -710,7 +711,7 @@ NEPNN<-Allfits %>%
   coord_trans(x = "log") +
   scale_color_manual(values = c("#16697A","#D64550"))+
   labs(y = expression(paste("NEP", " (mmol kg"^-1,")")),
-       x = expression(paste("NO"[x], " (",mu,"mol L"^-1,")")))+
+       x = expression(paste("N+N", " (",mu,"mol L"^-1,")")))+
   theme_classic()+
   facet_wrap(~Day.Night)
 
@@ -834,7 +835,9 @@ AllPlot<-(CoefPlot|NNSi)/(NEPNN|NEPTemp)/(NEPpH|SipH)/(NECpH|NECTemp)/(NEPHumics
        lty = "")&
   theme(axis.title.x = element_text(size = 14),
         axis.title.y = element_text(size = 14),
-        axis.text = element_text(size = 11))
+        axis.text = element_text(size = 11),
+        panel.background = element_rect(color = "black")
+          )
 
 ggsave(here("Output","marginaleffects_lines.pdf"), width = 12, height = 18, useDingbats = FALSE)
 
@@ -865,3 +868,4 @@ summary(lm(data = Cdata %>%
 
 summary(lm(data = Cdata %>%
              filter(Plate_Seep == c("Plate"), Location == "Cabral"), log(Silicate_umolL)~Salinity*Season))
+
