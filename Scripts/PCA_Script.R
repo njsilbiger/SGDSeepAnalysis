@@ -1711,5 +1711,22 @@ si_NN_modW<-lm(ratio~ log(Silicate_umolL)*Location, data = Data %>%
 anova(si_NN_modW)
 summary(si_NN_modW)
 
+## plot the radon timeseries data for supplemental figure
+radon<-read_csv(here("Data","radon_ts.csv"))
+
+radon %>%
+  ggplot(aes(x = EC, y = Rn))+
+  geom_point(alpha = 0.5, color = "grey")+
+  geom_smooth(method = "lm", se = TRUE, color = "black")+
+  labs(x = "Salinity",
+       y = expression(paste("Radon (dpm L"^-1,")")))+
+  theme_bw()+
+  theme(legend.position = "none",
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text = element_text(size = 11),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"))
+ggsave(here("Output","Radon_salinity.pdf"), width = 6, height = 5)
 ### Only keep certain dataframes for eco metab script
 rm(list= ls()[!(ls() %in% c("Data", "Datalog", "remove_varari","remove_cabral","remove_vararilog","remove_cabrallog","turb_all"))])
