@@ -1728,5 +1728,10 @@ radon %>%
         strip.background = element_blank(),
         strip.text = element_text(size = 14, face = "bold"))
 ggsave(here("Output","Radon_salinity.pdf"), width = 6, height = 5)
+
+radon.mod<-lm(Rn~EC, data = radon)
+anova(radon.mod)
+summary(radon.mod)
+
 ### Only keep certain dataframes for eco metab script
 rm(list= ls()[!(ls() %in% c("Data", "Datalog", "remove_varari","remove_cabral","remove_vararilog","remove_cabrallog","turb_all"))])
