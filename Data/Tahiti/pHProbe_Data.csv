@@ -1,0 +1,7 @@
+Site,Bottle_Code,Surface_Bottom,Sampling_Date,Salinity,SamplingTime,TempInLab,mV,TempInSitu,TA,TrisCalDate,Notes,Salinity_Calibration_Date
+La Source,A,Bottom,6/25/2023,35.95,8:15,31.15,-78.4,26.3,2361.54,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
+La Source,B,Bottom,6/25/2023,27.93,8:15,31.82,-76,26.3,2296.29,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
+La Source,C,Surface,6/25/2023,36,8:15,30.427,-79.4,26.3,2358.52,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
+Nordhoff,D,Bottom,6/25/2023,36.07,10:45,29.85,-79.8,28.3,2345.79,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
+Nordhoff,E,Bottom,6/25/2023,36.04,10:45,29.461,-80,28.3,2391.7,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
+Nordhoff,F,Surface,6/25/2023,36.09,10:45,29.751,-80.1,28.3,2368.51,6/14/2023,First filtered eith 0.22 um then killed with HgCl2,6/25/2023
