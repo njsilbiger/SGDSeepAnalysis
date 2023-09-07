@@ -84,10 +84,45 @@ Data_summary <-
   summarise_at(vars(TempInSitu:Depth), .funs = list(mean = mean, max = max, min = min, var = var))
 
 Data_summary %>%
-  ggplot(aes(x = log(Depth_mean), y =log(Salinity_psu_var)))+
+  ggplot(aes(x = Depth_min, y =Salinity_psu_min))+
   geom_point()
 
 Data_summary %>%
-  ggplot(aes(x = log(TempInSitu_min), y =log(Salinity_psu_min)))+
+  ggplot(aes(y = log(TempInSitu_min), x =log(Salinity_psu_min)))+
   geom_point()+
   geom_smooth(method = "lm", formula = "y~poly(x,2)")
+
+
+All_Date %>%
+  ggplot(aes(x = Salinity_psu, y = TempInSitu))+
+  geom_point()
+
+# create a 10 min moving average
+All_Date<-All_Date %>%
+  mutate(Sal_10 = zoo::rollmean(Salinity_psu, 10, na.pad = TRUE),
+         Temp_10 = zoo::rollmean(TempInSitu, 10, na.pad = TRUE),
+         Depth_10 = zoo::rollmean(Depth, 10, na.pad = TRUE),
+         month = month(Date),
+         season = case_when(month %in% c(12,1,2,3,4,5)~"Rainy",
+                            month %in% c(6:11)~"Dry"
+         )
+  ) 
+
+All_Date %>%
+  filter(Date == ymd("2021-08-04")) %>%
+  ggplot()+
+  geom_line(aes(x = DateTime, y = TempInSitu))+
+  geom_line(aes(x = DateTime, y = Temp_10), color = "red")
+
+All_Date %>% 
+  ggplot(aes(x = Depth_10, y = Sal_10))+
+  geom_point()+
+  facet_wrap(~season, scales = "free_x")
+
+All_Date%>%
+  ggplot(aes(x = season, y = Salinity_psu))+
+  geom_boxplot()
+
+All_Date%>%
+  ggplot(aes(x = season, y = Depth))+
+  geom_boxplot()
