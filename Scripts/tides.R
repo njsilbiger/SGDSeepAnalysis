@@ -94,9 +94,9 @@ tides_all %>%
   facet_wrap(~Season, scales = "free_x", nrow = 2)+
   theme_bw()+
   theme(strip.background = element_blank(),
-        axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14),
-        strip.text = element_text(size = 14),
+        axis.title = element_text(size = 18, face = "bold"),
+        axis.text = element_text(size = 18),
+        strip.text = element_text(size = 18, face = "bold"),
         legend.position = "none",
         line = element_blank())
 
