@@ -1,7 +1,7 @@
-Site,Bottle_Code,Sampling_Date,SamplingTime,Salinity,pH,TempInSitu,TA,Notes
-La Source,A,2023-06-25,08:15:00,35.95,8.056335004576686,26.3,2361.54,First filtered eith 0.22 um then killed with HgCl2
-La Source,B,2023-06-25,08:15:00,27.93,8.002268358593831,26.3,2296.29,First filtered eith 0.22 um then killed with HgCl2
-La Source,C,2023-06-25,08:15:00,36,8.073186191676651,26.3,2358.52,First filtered eith 0.22 um then killed with HgCl2
-Nordhoff,D,2023-06-25,10:45:00,36.07,8.04939396419105,28.3,2345.79,First filtered eith 0.22 um then killed with HgCl2
-Nordhoff,E,2023-06-25,10:45:00,36.04,8.05270795637068,28.3,2391.7,First filtered eith 0.22 um then killed with HgCl2
-Nordhoff,F,2023-06-25,10:45:00,36.09,8.05444438745127,28.3,2368.51,First filtered eith 0.22 um then killed with HgCl2
+Site,Bottle_Code,Sampling_Date,SamplingTime,Salinity,pH,TempInSitu,TA,Phosphate,Silicate,NN,Ammonia,Notes
+La Source,A,6/25/2023,8:15:00,35.95,8.056335004576686,26.3,2361.54,0.095584713,2.97852623,0.554073592,0.176812591,First filtered eith 0.22 um then killed with HgCl2
+La Source,B,6/25/2023,8:15:00,27.93,8.002268358593831,26.3,2296.29,0.964059657,137.6295716,5.764246127,7.054686946,First filtered eith 0.22 um then killed with HgCl2
+La Source,C,6/25/2023,8:15:00,36,8.073186191676651,26.3,2358.52,0.120002164,3.967993177,0.982787308,5.716923088,First filtered eith 0.22 um then killed with HgCl2
+Nordhoff,D,6/25/2023,10:45:00,36.07,8.049393964,28.3,2345.79,0.0884802,1.503676942,0.679847595,0.24870457,First filtered eith 0.22 um then killed with HgCl2
+Nordhoff,E,6/25/2023,10:45:00,36.04,8.052707956,28.3,2391.7,0.103792839,2.419203472,0.434539949,0.162225813,First filtered eith 0.22 um then killed with HgCl2
+Nordhoff,F,6/25/2023,10:45:00,36.09,8.054444387,28.3,2368.51,0.065304314,1.233956133,0.194417955,0.281889491,First filtered eith 0.22 um then killed with HgCl2
