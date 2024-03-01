@@ -10,6 +10,16 @@ library(lubridate)
 
 ###
 
+# bring in the tide data
+TidePath<-here("Data","AllSled","AllTides")
+files<-dir(path = TidePath, pattern = ".txt", full.names = TRUE)
+
+Tides<-files %>%
+  set_names()%>%
+  map_df(~read_tsv(.,skip = 13), .id = "filename")%>%
+  mutate(Date = ymd_hms(paste(Date,Day))) %>%
+  select(Date,tideheight = Time)
+
 ## some of the files are character dates and some are UTC... read in separately 
 CondPath<-here("Data", "AllSled", "CT","Date_chr")
 files <- dir(path = CondPath,pattern = ".csv", full.names = TRUE)
@@ -62,11 +72,12 @@ WL_Varari<-WL_Varari %>%
 
 All_Date<-CT_Varari %>%
   full_join(WL_Varari) %>%
+  left_join(Tides)%>%
   mutate(DateTime = Date,
          Date = date(Date)) %>%
   group_by(Date)%>%
   mutate(Sal_norm = Salinity_psu -max(Salinity_psu)) %>% # normalize to daily max
-  ungroup()
+  ungroup() 
 
 All_Date %>%
   drop_na(Depth)%>%
@@ -99,14 +110,17 @@ All_Date %>%
 
 # create a 10 min moving average
 All_Date<-All_Date %>%
-  mutate(Sal_10 = zoo::rollmean(Salinity_psu, 10, na.pad = TRUE),
-         Temp_10 = zoo::rollmean(TempInSitu, 10, na.pad = TRUE),
-         Depth_10 = zoo::rollmean(Depth, 10, na.pad = TRUE),
+  mutate(Sal_10 = zoo::rollmean(Salinity_psu, 60, na.pad = TRUE),
+         Temp_10 = zoo::rollmean(TempInSitu, 60, na.pad = TRUE),
+         Depth_10 = zoo::rollmean(Depth, 60, na.pad = TRUE),
+         Tide_10 = zoo::rollmean(tideheight, 60, na.pad = TRUE),
          month = month(Date),
          season = case_when(month %in% c(12,1,2,3,4,5)~"Rainy",
                             month %in% c(6:11)~"Dry"
          )
-  ) 
+         ) %>%
+  mutate(rise_fall = ifelse(Tide_10 > lag(Tide_10), "Rising","Falling")) # add a column if the tide is rising or falling
+
 
 All_Date %>%
   filter(Date == ymd("2021-08-04")) %>%
@@ -115,9 +129,10 @@ All_Date %>%
   geom_line(aes(x = DateTime, y = Temp_10), color = "red")
 
 All_Date %>% 
-  ggplot(aes(x = Depth_10, y = Sal_10))+
+ # filter(Date == ymd("2021-08-06")) %>%
+  ggplot(aes(x = Temp_10, y = Sal_10, color = rise_fall))+
   geom_point()+
-  facet_wrap(~season, scales = "free_x")
+  facet_wrap(season~rise_fall, scales = "free_x")
 
 All_Date%>%
   ggplot(aes(x = season, y = Salinity_psu))+
