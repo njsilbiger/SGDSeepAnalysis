@@ -77,17 +77,22 @@ All_Date<-CT_Varari %>%
          Date = date(Date)) %>%
   group_by(Date)%>%
   mutate(Sal_norm = Salinity_psu -max(Salinity_psu)) %>% # normalize to daily max
-  ungroup() 
+  ungroup() %>%
+  mutate(YearMonth = paste0(year(Date),"-",month(Date)))
+
+length(unique(All_Date$Date))
+
 
 All_Date %>%
   drop_na(Depth)%>%
   droplevels()%>%
-  ggplot(aes(x = log(Depth), y = log(Salinity_psu)))+
+  ggplot(aes(x = log(Depth), y = Salinity_psu, color = YearMonth))+
   geom_point()+
-  labs(y = "Difference from max daily salinity (psu)",
-       x = "Water Depth (m)")+
-  facet_wrap(~Date, scales = "free")
+  labs(y = "Salinity (psu)",
+       x = "Water Depth (m)")
+  #facet_wrap(~Date, scales = "free")
 
+ggsave(here("Output","sled_sal.png"), height = 4, width = 5)
 
 Data_summary <-
   All_Date %>%
@@ -95,7 +100,7 @@ Data_summary <-
   summarise_at(vars(TempInSitu:Depth), .funs = list(mean = mean, max = max, min = min, var = var))
 
 Data_summary %>%
-  ggplot(aes(x = Depth_min, y =Salinity_psu_min))+
+  ggplot(aes(x = Depth_min, y =Salinity_psu_mean))+
   geom_point()
 
 Data_summary %>%
@@ -129,10 +134,13 @@ All_Date %>%
   geom_line(aes(x = DateTime, y = Temp_10), color = "red")
 
 All_Date %>% 
+  drop_na(rise_fall)%>%
  # filter(Date == ymd("2021-08-06")) %>%
-  ggplot(aes(x = Temp_10, y = Sal_10, color = rise_fall))+
-  geom_point()+
-  facet_wrap(season~rise_fall, scales = "free_x")
+  ggplot(aes(x = Depth_10, y = Sal_10, color = rise_fall))+
+  geom_point(alpha = 0.02)+
+  geom_smooth(method = "lm", formula = 'y~poly(x,2)', color = "black")+
+  facet_wrap(YearMonth~rise_fall, scales = "free", ncol = 2)
+ggsave(here("Output","rise_fall.png"),width = 8, height = 16 )
 
 All_Date%>%
   ggplot(aes(x = season, y = Salinity_psu))+
